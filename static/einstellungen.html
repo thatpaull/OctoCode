@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>OctoCode - Einstellungen</title>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="dashboard.css" />
+	<link rel="stylesheet" href="einstellungen.css" />
+</head>
+<body>
+<div class="app">
+	<!-- SIDEBAR -->
+	<aside class="sidebar" aria-label="Navbar">
+		<div class="brand">
+			<div class="logo">OC</div>
+			<div class="brand-text">
+				<div class="name">OctoCode</div>
+				<div class="sub">Premium</div>
+			</div>
+		</div>
+
+		<nav class="nav">
+			<ul>
+				<li class="nav-item">Dashboard</li>
+				<li class="nav-item">Kurse</li>
+				<li class="nav-item">Bewertungen</li>
+				<li class="nav-item">AI</li>
+				<li class="nav-item">Freunde</li>
+				<li class="nav-item active" aria-current="page">Einstellungen</li>
+			</ul>
+		</nav>
+
+		<div class="sidebar-footer">
+			<div class="theme-switch">
+				<label class="switch">
+					<input id="themeToggle" type="checkbox">
+					<span class="slider"></span>
+				</label>
+				<small>Dunkles Thema</small>
+			</div>
+			<div class="profile">
+				<img id="sidebarAvatar" src="img/kid-avatar.jpg" alt="avatar" />
+				<div>
+					<div class="prof-name" id="sidebarName">Laden...</div>
+					<div class="prof-score">4,525 pts</div>
+				</div>
+			</div>
+		</div>
+	</aside>
+
+	<!-- MAIN -->
+	<main class="main">
+		<header class="main-header">
+			<div>
+				<h1>⚙️ Einstellungen</h1>
+				<p class="muted">Passe dein Profil und deine Präferenzen an</p>
+			</div>
+		</header>
+
+		<div class="settings-container">
+			<div id="successMessage" class="success-message"></div>
+			<div id="errorMessage" class="error-message"></div>
+
+			<!-- Avatar Section -->
+			<div class="settings-section">
+				<h2>📸 Profilbild</h2>
+				<div class="avatar-upload-section">
+					<div class="avatar-preview-wrapper">
+						<div class="avatar-preview">
+							<img id="avatarPreview" src="img/kid-avatar.jpg" alt="Avatar">
+							<div class="avatar-overlay">
+								<label for="fileInput" class="avatar-upload-trigger">
+									<span class="upload-icon">📷</span>
+									<span class="upload-text">Ändern</span>
+								</label>
+							</div>
+						</div>
+						<input type="file" id="fileInput" accept="image/jpeg,image/png,image/jpg,image/gif" style="display: none;">
+					</div>
+					<div class="avatar-info">
+						<h3>Profilbild ändern</h3>
+						<p>Lade ein neues Foto hoch oder generiere einen Avatar. JPG, PNG oder GIF (max. 5MB)</p>
+						<div class="avatar-actions">
+							<button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+								<span class="btn-icon">📤</span> Foto hochladen
+							</button>
+							<button class="btn btn-secondary" onclick="generateRandomAvatar()">
+								<span class="btn-icon">🎲</span> Zufälliger Avatar
+							</button>
+							<button class="btn btn-danger" onclick="resetAvatar()">
+								<span class="btn-icon">🗑️</span> Zurücksetzen
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Personal Info Section -->
+			<div class="settings-section">
+				<h2>👤 Persönliche Informationen</h2>
+				<form id="profileForm">
+					<div class="form-row">
+						<div class="form-group">
+							<label for="firstName">Vorname <span class="required">*</span></label>
+							<input type="text" id="firstName" placeholder="Dein Vorname" required>
+						</div>
+						<div class="form-group">
+							<label for="lastName">Nachname <span class="required">*</span></label>
+							<input type="text" id="lastName" placeholder="Dein Nachname" required>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label for="email">E-Mail-Adresse <span class="required">*</span></label>
+						<input type="email" id="email" placeholder="name@beispiel.de" required readonly>
+						<div class="input-hint">
+							<span class="hint-icon">ℹ️</span>
+							Diese E-Mail wird für Anmeldung und Benachrichtigungen verwendet
+						</div>
+					</div>
+
+					<div class="form-row">
+						<div class="form-group">
+							<label for="birthdate">Geburtsdatum</label>
+							<input type="date" id="birthdate">
+						</div>
+						<div class="form-group">
+							<label for="country">Land</label>
+							<select id="country">
+								<option value="">Wählen...</option>
+								<option value="AT">🇦🇹 Österreich</option>
+								<option value="DE">🇩🇪 Deutschland</option>
+								<option value="CH">🇨🇭 Schweiz</option>
+								<option value="other">🌍 Anderes</option>
+							</select>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label for="bio">Über mich</label>
+						<textarea id="bio" placeholder="Erzähl etwas über dich und deine Interessen..." rows="4"></textarea>
+						<div class="input-hint">
+							<span class="hint-icon">💡</span>
+							<span id="bioCounter">0 / 500</span> Zeichen
+						</div>
+					</div>
+
+					<div class="form-row">
+						<div class="form-group">
+							<label for="favoriteLanguage">Lieblingsprogrammiersprache</label>
+							<select id="favoriteLanguage">
+								<option value="">Wählen...</option>
+								<option value="python">🐍 Python</option>
+								<option value="javascript">⚡ JavaScript</option>
+								<option value="java">☕ Java</option>
+								<option value="cpp">⚙️ C++</option>
+								<option value="csharp">🎯 C#</option>
+								<option value="scratch">🎨 Scratch</option>
+								<option value="other">📝 Andere</option>
+							</select>
+						</div>
+						<div class="form-group">
+							<label for="experienceLevel">Erfahrungsstufe</label>
+							<select id="experienceLevel">
+								<option value="beginner">🌱 Anfänger</option>
+								<option value="intermediate">🚀 Fortgeschritten</option>
+								<option value="advanced">⭐ Experte</option>
+							</select>
+						</div>
+					</div>
+
+					<div class="save-section">
+						<button type="button" class="btn btn-secondary-outline" onclick="cancelChanges()">
+							<span class="btn-icon">❌</span> Abbrechen
+						</button>
+						<button type="submit" class="btn btn-primary btn-save">
+							<span class="btn-icon">💾</span> Änderungen speichern
+						</button>
+					</div>
+				</form>
+			</div>
+
+			<!-- Privacy Section -->
+			<div class="settings-section">
+				<h2>🔒 Datenschutz & Sicherheit</h2>
+				<div class="privacy-options">
+					<div class="privacy-item">
+						<div class="privacy-content">
+							<div class="privacy-icon">👁️</div>
+							<div class="privacy-text">
+								<label>Profil für andere sichtbar</label>
+								<p>Andere Nutzer können dein Profil und deine Aktivitäten sehen</p>
+							</div>
+						</div>
+						<label class="switch">
+							<input type="checkbox" id="profileVisible" checked>
+							<span class="slider"></span>
+						</label>
+					</div>
+
+					<div class="privacy-item">
+						<div class="privacy-content">
+							<div class="privacy-icon">👥</div>
+							<div class="privacy-text">
+								<label>Freundschaftsanfragen erlauben</label>
+								<p>Andere können dir Freundschaftsanfragen senden</p>
+							</div>
+						</div>
+						<label class="switch">
+							<input type="checkbox" id="friendRequests" checked>
+							<span class="slider"></span>
+						</label>
+					</div>
+
+					<div class="privacy-item">
+						<div class="privacy-content">
+							<div class="privacy-icon">📧</div>
+							<div class="privacy-text">
+								<label>E-Mail-Benachrichtigungen</label>
+								<p>Erhalte Updates über neue Kurse und Erfolge</p>
+							</div>
+						</div>
+						<label class="switch">
+							<input type="checkbox" id="emailNotifications" checked>
+							<span class="slider"></span>
+						</label>
+					</div>
+				</div>
+
+				<div class="privacy-save-section">
+					<button class="btn btn-primary" onclick="savePrivacySettings()">
+						<span class="btn-icon">🔐</span> Datenschutz speichern
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<footer class="footer">
+			<div>© OctoCode — 2025</div>
+		</footer>
+	</main>
+</div>
+
+<script src="einstellungen.js"></script>
+</body>
+</html>

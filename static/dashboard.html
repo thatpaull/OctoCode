@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>OctoCode Dashboard</title>
+
+	<!-- Google fonts -->
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+	<!-- Chart.js -->
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+
+	<link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+<div class="app">
+	<!-- SIDEBAR -->
+	<aside class="sidebar" aria-label="Navbar">
+		<div class="brand">
+			<div class="logo">OC</div>
+			<div class="brand-text">
+				<div class="name">OctoCode</div>
+				<div class="sub">Premium</div>
+			</div>
+		</div>
+
+		<nav class="nav">
+			<ul>
+				<li class="nav-item active" aria-current="page">Dashboard</li>
+				<li class="nav-item">Kurse</li>
+				<li class="nav-item">Bewertungen</li>
+				<li class="nav-item">AI</li>
+				<li class="nav-item">Freunde</li>
+				<li class="nav-item">Einstellungen</li>
+			</ul>
+		</nav>
+
+		<div class="sidebar-footer">
+			<div class="theme-switch">
+				<label class="switch">
+					<input id="themeToggle" type="checkbox">
+					<span class="slider"></span>
+				</label>
+				<small>Dunkles Thema</small>
+			</div>
+			<div class="profile">
+				<img src="img/kid-avatar.jpg" alt="avatar" />
+				<div>
+					<div class="prof-name">Alex Rudewel</div>
+					<div class="prof-score">4,525 pts</div>
+				</div>
+			</div>
+		</div>
+	</aside>
+
+	<!-- MAIN -->
+	<main class="main">
+		<header class="main-header">
+			<div>
+				<h1>Willkommen, Alex! 👋</h1>
+				<p class="muted">Stay focused, keep learning!</p>
+			</div>
+			<div class="stats-top">
+				<div class="stat">
+					<div class="stat-value">5</div>
+					<div class="stat-label">Total courses</div>
+				</div>
+				<div class="stat">
+					<div class="stat-value">92<span class="muted">%</span></div>
+					<div class="stat-label">Completion rate</div>
+				</div>
+				<div class="stat">
+					<div class="stat-value">160h</div>
+					<div class="stat-label">Study time</div>
+				</div>
+				<div class="profile-quick">
+					<div class="avatar small">
+						<img src="img/kid-avatar.jpg" alt="">
+					</div>
+					<div class="profile-name">Alex Rudewel</div>
+				</div>
+			</div>
+		</header>
+
+		<section class="grid grid-2">
+			<!-- Courses carousel / list -->
+			<div class="card card-courses">
+				<div class="card-header">
+					<h3>My Courses</h3>
+					<a class="link-muted" href="#">See all</a>
+				</div>
+
+				<div class="courses">
+					<article class="course">
+						<div class="course-badge blue">Development</div>
+						<h4 class="course-title">Python — Beginners</h4>
+						<p class="course-sub">Python for Beginners: ein interaktiver Kurs, in dem Kinder spielerisch Programmieren lernen</p>
+						<div class="course-meta">
+							<div class="progress-line">
+								<div class="progress" style="width:62%"></div>
+							</div>
+							<div class="course-stats">5/16 lessons • 8h 10min • 4.7★</div>
+						</div>
+					</article>
+
+					<article class="course">
+						<div class="course-badge yellow">Coding</div>
+						<h4 class="course-title">Gamedev</h4>
+						<p class="course-sub">ein praxisnaher Kurs, in dem Kinder lernen, eigene Computerspiele zu gestalten</p>
+						<div class="course-meta">
+							<div class="progress-line">
+								<div class="progress" style="width:22%"></div>
+							</div>
+							<div class="course-stats">3/12 lessons • 3h 12min • 4.7★</div>
+						</div>
+					</article>
+				</div>
+			</div>
+
+			<!-- Right column: calendar & upcoming -->
+			<div class="card card-calendar">
+				<div class="card-header">
+					<h3>Heute — <span id="todayDate"></span></h3>
+					<div class="small-muted">2 Lessons, Heute</div>
+				</div>
+
+				<div class="agenda">
+					<div class="agenda-item green">
+						<div class="time">13:30 - 15:20</div>
+						<div class="title">Figma fundamentals: first step into UI/UX Design</div>
+					</div>
+
+					<div class="agenda-item blue">
+						<div class="time">16:20 - 18:00</div>
+						<div class="title">Responsive Design Basics: adapt your UI to any screen</div>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<section class="grid grid-3">
+			<div class="card">
+				<div class="card-header">
+					<h3>Activities (last 7 days)</h3>
+				</div>
+				<div class="card-body">
+					<canvas id="activityChart" height="160"></canvas>
+					<div class="legend-row">
+						<div><span class="dot purple"></span> Theory</div>
+						<div><span class="dot blue"></span> Practice</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="card">
+				<div class="card-header">
+					<h3>Tasks</h3>
+					<a class="link-muted" href="#">Claim</a>
+				</div>
+				<div class="tasks">
+					<div class="task">
+						<div class="task-title">Write a short reflection on completed module</div>
+						<div class="task-reward">+500</div>
+					</div>
+					<div class="task">
+						<div class="task-title">Complete quiz based on last week's material</div>
+						<div class="task-reward">+1,500</div>
+					</div>
+					<div class="task muted">
+						<div class="task-title">Submit your project draft for review</div>
+						<div class="task-reward">+500</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="card">
+				<div class="card-header">
+					<h3>Friends Score</h3>
+					<a class="link-muted" href="#">See all</a>
+				</div>
+
+				<div class="friends-list">
+					<div class="friend">
+						<div class="avatar xs"><img src="img/face1.jpg" alt=""></div>
+						<div class="friend-name">Michael Turner</div>
+						<div class="friend-score">10,568</div>
+					</div>
+					<div class="friend">
+						<div class="avatar xs"><img src="img/face2.jpg" alt=""></div>
+						<div class="friend-name">Ethan Brooks</div>
+						<div class="friend-score">10,112</div>
+					</div>
+					<div class="friend">
+						<div class="avatar xs"><img src="img/face3.jpg" alt=""></div>
+						<div class="friend-name">Daniel Hayes</div>
+						<div class="friend-score">9,052</div>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<footer class="footer">
+			<div>© EduCode — 2025</div>
+		</footer>
+	</main>
+</div>
+
+<script src="dashboard.js"></script>
+</body>
+</html>

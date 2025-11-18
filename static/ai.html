@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>AI Aufgaben - OctoCode</title>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="dashboard.css" />
+	<style>
+		.ai-generator {
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			border-radius: 16px;
+			padding: 2rem;
+			color: white;
+			margin-bottom: 2rem;
+		}
+		.ai-generator h2 {
+			margin: 0 0 1rem 0;
+			font-size: 1.75rem;
+		}
+		.ai-form {
+			display: grid;
+			grid-template-columns: 1fr 1fr 1fr auto;
+			gap: 1rem;
+			margin-top: 1.5rem;
+		}
+		.ai-form select, .ai-form input {
+			padding: 0.75rem;
+			border-radius: 8px;
+			border: none;
+			font-size: 0.95rem;
+		}
+		.btn-generate {
+			background: white;
+			color: #667eea;
+			padding: 0.75rem 2rem;
+			border-radius: 8px;
+			border: none;
+			font-weight: 600;
+			cursor: pointer;
+			transition: transform 0.2s;
+		}
+		.btn-generate:hover {
+			transform: translateY(-2px);
+		}
+		.btn-generate:disabled {
+			opacity: 0.6;
+			cursor: not-allowed;
+		}
+		.tasks-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+			gap: 1.5rem;
+		}
+		.task-card {
+			background: white;
+			border-radius: 12px;
+			padding: 1.5rem;
+			box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+			transition: all 0.3s;
+			cursor: pointer;
+			border: 2px solid transparent;
+		}
+		.task-card:hover {
+			transform: translateY(-4px);
+			box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+			border-color: #667eea;
+		}
+		.task-card.completed {
+			background: #f0fdf4;
+			border-color: #22c55e;
+		}
+		.task-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: start;
+			margin-bottom: 1rem;
+		}
+		.task-badge {
+			display: inline-block;
+			padding: 0.25rem 0.75rem;
+			border-radius: 20px;
+			font-size: 0.75rem;
+			font-weight: 600;
+			text-transform: uppercase;
+		}
+		.badge-leicht { background: #dbeafe; color: #1e40af; }
+		.badge-mittel { background: #fef3c7; color: #92400e; }
+		.badge-schwer { background: #fee2e2; color: #991b1b; }
+		.task-title {
+			font-size: 1.1rem;
+			font-weight: 700;
+			color: #1f2937;
+			margin: 0.5rem 0;
+		}
+		.task-desc {
+			color: #6b7280;
+			font-size: 0.9rem;
+			line-height: 1.5;
+			margin-bottom: 1rem;
+		}
+		.task-meta {
+			display: flex;
+			gap: 1rem;
+			font-size: 0.85rem;
+			color: #9ca3af;
+		}
+		.loading {
+			text-align: center;
+			padding: 3rem;
+			color: #6b7280;
+		}
+		.spinner {
+			border: 3px solid #f3f4f6;
+			border-top: 3px solid #667eea;
+			border-radius: 50%;
+			width: 40px;
+			height: 40px;
+			animation: spin 1s linear infinite;
+			margin: 0 auto 1rem;
+		}
+		@keyframes spin {
+			0% { transform: rotate(0deg); }
+			100% { transform: rotate(360deg); }
+		}
+		.modal {
+			display: none;
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: rgba(0,0,0,0.5);
+			z-index: 1000;
+			overflow-y: auto;
+		}
+		.modal.active {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 2rem;
+		}
+		.modal-content {
+			background: white;
+			border-radius: 16px;
+			max-width: 900px;
+			width: 100%;
+			max-height: 90vh;
+			overflow-y: auto;
+			padding: 2rem;
+		}
+		.modal-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: start;
+			margin-bottom: 1.5rem;
+		}
+		.btn-close {
+			background: none;
+			border: none;
+			font-size: 1.5rem;
+			cursor: pointer;
+			color: #6b7280;
+		}
+		.code-editor {
+			width: 100%;
+			min-height: 300px;
+			padding: 1rem;
+			border: 2px solid #e5e7eb;
+			border-radius: 8px;
+			font-family: 'Courier New', monospace;
+			font-size: 0.9rem;
+			resize: vertical;
+		}
+		.btn-submit {
+			background: #667eea;
+			color: white;
+			padding: 0.75rem 2rem;
+			border-radius: 8px;
+			border: none;
+			font-weight: 600;
+			cursor: pointer;
+			margin-top: 1rem;
+		}
+		.btn-submit:hover {
+			background: #5568d3;
+		}
+		.examples, .hints, .tests {
+			margin: 1.5rem 0;
+		}
+		.example-item, .hint-item, .test-item {
+			background: #f9fafb;
+			padding: 1rem;
+			border-radius: 8px;
+			margin-bottom: 0.75rem;
+			border-left: 4px solid #667eea;
+		}
+		.empty-state {
+			text-align: center;
+			padding: 4rem 2rem;
+			color: #9ca3af;
+		}
+		.empty-state svg {
+			width: 100px;
+			height: 100px;
+			margin-bottom: 1rem;
+			opacity: 0.5;
+		}
+	</style>
+</head>
+<body>
+<div class="app">
+	<!-- SIDEBAR -->
+	<aside class="sidebar" aria-label="Navbar">
+		<div class="brand">
+			<div class="logo">OC</div>
+			<div class="brand-text">
+				<div class="name">OctoCode</div>
+				<div class="sub">Premium</div>
+			</div>
+		</div>
+
+		<nav class="nav">
+			<ul>
+				<li class="nav-item"><a href="/dashboard.html" style="color: inherit; text-decoration: none;">Dashboard</a></li>
+				<li class="nav-item">Kurse</li>
+				<li class="nav-item">Bewertungen</li>
+				<li class="nav-item active" aria-current="page">AI</li>
+				<li class="nav-item">Freunde</li>
+				<li class="nav-item">Einstellungen</li>
+			</ul>
+		</nav>
+
+		<div class="sidebar-footer">
+			<div class="theme-switch">
+				<label class="switch">
+					<input id="themeToggle" type="checkbox">
+					<span class="slider"></span>
+				</label>
+				<small>Dunkles Thema</small>
+			</div>
+			<div class="profile">
+				<img id="sidebarAvatar" src="img/kid-avatar.jpg" alt="avatar" />
+				<div>
+					<div class="prof-name" id="sidebarName">Lädt...</div>
+					<div class="prof-score">AI-Modus</div>
+				</div>
+			</div>
+		</div>
+	</aside>
+
+	<!-- MAIN -->
+	<main class="main">
+		<header class="main-header">
+			<div>
+				<h1>🤖 AI Aufgaben-Generator</h1>
+				<p class="muted">Generiere personalisierte Programmieraufgaben mit künstlicher Intelligenz</p>
+			</div>
+		</header>
+
+		<!-- AI Generator -->
+		<section class="ai-generator">
+			<h2>✨ Neue Aufgabe generieren</h2>
+			<p style="opacity: 0.9;">Wähle ein Thema, Schwierigkeitsgrad und Sprache - unsere AI erstellt eine einzigartige Aufgabe nur für dich!</p>
+
+			<form class="ai-form" id="generateForm">
+				<select id="topicSelect" required>
+					<option value="">Thema wählen...</option>
+					<option value="Python Grundlagen">Python Grundlagen</option>
+					<option value="Schleifen">Schleifen (for, while)</option>
+					<option value="Funktionen">Funktionen</option>
+					<option value="Listen und Arrays">Listen und Arrays</option>
+					<option value="Strings">String-Verarbeitung</option>
+					<option value="Dictionaries">Dictionaries</option>
+					<option value="Rekursion">Rekursion</option>
+					<option value="Klassen und Objekte">Klassen und Objekte</option>
+					<option value="Algorithmen">Algorithmen</option>
+					<option value="Datenstrukturen">Datenstrukturen</option>
+				</select>
+
+				<select id="difficultySelect" required>
+					<option value="Leicht">Leicht</option>
+					<option value="Mittel">Mittel</option>
+					<option value="Schwer">Schwer</option>
+				</select>
+
+				<select id="languageSelect" required>
+					<option value="Python">Python</option>
+					<option value="JavaScript">JavaScript</option>
+					<option value="Java">Java</option>
+					<option value="C++">C++</option>
+				</select>
+
+				<button type="submit" class="btn-generate" id="generateBtn">
+					🚀 Generieren
+				</button>
+			</form>
+		</section>
+
+		<!-- Tasks List -->
+		<section class="card">
+			<div class="card-header">
+				<h3>Meine AI-Aufgaben</h3>
+				<span id="tasksCount" class="muted">Lädt...</span>
+			</div>
+
+			<div id="loadingState" class="loading">
+				<div class="spinner"></div>
+				<p>Lade Aufgaben...</p>
+			</div>
+
+			<div id="emptyState" class="empty-state" style="display: none;">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+					<path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				</svg>
+				<h3>Noch keine Aufgaben</h3>
+				<p>Generiere deine erste AI-Aufgabe oben!</p>
+			</div>
+
+			<div id="tasksGrid" class="tasks-grid" style="display: none;"></div>
+		</section>
+	</main>
+</div>
+
+<!-- Task Detail Modal -->
+<div id="taskModal" class="modal">
+	<div class="modal-content">
+		<div class="modal-header">
+			<div>
+				<h2 id="modalTitle">Aufgabe</h2>
+				<p class="muted" id="modalMeta"></p>
+			</div>
+			<button class="btn-close" onclick="closeModal()">×</button>
+		</div>
+
+		<div id="modalBody">
+			<p id="modalDescription"></p>
+
+			<div class="examples" id="modalExamples"></div>
+			<div class="hints" id="modalHints"></div>
+			<div class="tests" id="modalTests"></div>
+
+			<h3>Deine Lösung:</h3>
+			<textarea id="codeEditor" class="code-editor" placeholder="Schreibe deinen Code hier..."></textarea>
+
+			<button class="btn-submit" onclick="submitSolution()">Lösung einreichen</button>
+		</div>
+	</div>
+</div>
+
+<script>
+let currentTask = null;
+let allTasks = [];
+
+// Check auth
+async function checkAuth() {
+	try {
+		const res = await fetch('/api/check-auth', { credentials: 'include' });
+		const data = await res.json();
+		if (!data.authenticated) {
+			window.location.href = '/index.html';
+			return;
+		}
+		document.getElementById('sidebarName').textContent = data.user.name;
+		if (data.user.avatar_url) {
+			document.getElementById('sidebarAvatar').src = data.user.avatar_url;
+		}
+	} catch (err) {
+		console.error('Auth error:', err);
+	}
+}
+
+// Load tasks
+async function loadTasks() {
+	try {
+		const res = await fetch('/api/ai/my-tasks', { credentials: 'include' });
+		allTasks = await res.json();
+
+		document.getElementById('loadingState').style.display = 'none';
+		document.getElementById('tasksCount').textContent = `${allTasks.length} Aufgaben`;
+
+		if (allTasks.length === 0) {
+			document.getElementById('emptyState').style.display = 'block';
+		} else {
+			document.getElementById('emptyState').style.display = 'none';
+			document.getElementById('tasksGrid').style.display = 'grid';
+			renderTasks();
+		}
+	} catch (err) {
+		console.error('Error loading tasks:', err);
+	}
+}
+
+// Render tasks
+function renderTasks() {
+	const grid = document.getElementById('tasksGrid');
+	grid.innerHTML = allTasks.map(task => `
+		<div class="task-card ${task.completed ? 'completed' : ''}" onclick="openTask('${task.task_id}')">
+			<div class="task-header">
+				<span class="task-badge badge-${task.difficulty.toLowerCase()}">${task.difficulty}</span>
+				${task.completed ? '<span style="font-size: 1.5rem;">✅</span>' : ''}
+			</div>
+			<h3 class="task-title">${task.title}</h3>
+			<p class="task-desc">${task.description}</p>
+			<div class="task-meta">
+				<span>📚 ${task.topic}</span>
+				<span>⏱️ ${task.estimated_time} Min</span>
+				<span>💻 ${task.language}</span>
+			</div>
+		</div>
+	`).join('');
+}
+
+// Generate task
+document.getElementById('generateForm').addEventListener('submit', async (e) => {
+	e.preventDefault();
+
+	const btn = document.getElementById('generateBtn');
+	const topic = document.getElementById('topicSelect').value;
+	const difficulty = document.getElementById('difficultySelect').value;
+	const language = document.getElementById('languageSelect').value;
+
+	if (!topic) {
+		alert('Bitte wähle ein Thema!');
+		return;
+	}
+
+	btn.disabled = true;
+	btn.textContent = '⏳ Generiere...';
+
+	try {
+		const res = await fetch('/api/ai/generate-task', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({ topic, difficulty, language })
+		});
+
+		const data = await res.json();
+
+		if (data.success) {
+			alert('✅ Neue Aufgabe erfolgreich generiert!');
+			await loadTasks();
+		} else {
+			alert('❌ ' + data.message);
+		}
+	} catch (err) {
+		console.error('Error:', err);
+		alert('Fehler bei der Generierung');
+	} finally {
+		btn.disabled = false;
+		btn.textContent = '🚀 Generieren';
+	}
+});
+
+// Open task modal
+async function openTask(taskId) {
+	try {
+		const res = await fetch(`/api/ai/task/${taskId}`, { credentials: 'include' });
+		const data = await res.json();
+
+		if (!data.success) {
+			alert('Fehler beim Laden der Aufgabe');
+			return;
+		}
+
+		currentTask = data.task;
+
+		document.getElementById('modalTitle').textContent = currentTask.title;
+		document.getElementById('modalMeta').textContent = `${currentTask.topic} • ${currentTask.difficulty} • ${currentTask.language}`;
+		document.getElementById('modalDescription').textContent = currentTask.description;
+
+		// Examples
+		const examplesHtml = currentTask.examples.map(ex => `
+			<div class="example-item">
+				<strong>Eingabe:</strong> ${ex.input}<br>
+				<strong>Ausgabe:</strong> ${ex.output}<br>
+				<em>${ex.explanation}</em>
+			</div>
+		`).join('');
+		document.getElementById('modalExamples').innerHTML = '<h3>Beispiele:</h3>' + examplesHtml;
+
+		// Hints
+		const hintsHtml = currentTask.hints.map((hint, i) => `
+			<div class="hint-item">💡 <strong>Tipp ${i+1}:</strong> ${hint}</div>
+		`).join('');
+		document.getElementById('modalHints').innerHTML = '<h3>Tipps:</h3>' + hintsHtml;
+
+		// Tests
+		const testsHtml = currentTask.test_cases.map((test, i) => `
+			<div class="test-item">
+				<strong>Test ${i+1}:</strong><br>
+				Eingabe: ${test.input}<br>
+				Erwartete Ausgabe: ${test.expected_output}
+			</div>
+		`).join('');
+		document.getElementById('modalTests').innerHTML = '<h3>Testfälle:</h3>' + testsHtml;
+
+		document.getElementById('codeEditor').value = '';
+		document.getElementById('taskModal').classList.add('active');
+	} catch (err) {
+		console.error('Error:', err);
+	}
+}
+
+function closeModal() {
+	document.getElementById('taskModal').classList.remove('active');
+	currentTask = null;
+}
+
+// Submit solution
+async function submitSolution() {
+	const code = document.getElementById('codeEditor').value.trim();
+
+	if (!code) {
+		alert('Bitte schreibe erst deinen Code!');
+		return;
+	}
+
+	try {
+		const res = await fetch('/api/ai/submit', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({
+				task_id: currentTask.task_id,
+				code: code
+			})
+		});
+
+		const data = await res.json();
+
+		if (data.success) {
+			alert('✅ Lösung erfolgreich eingereicht!');
+			closeModal();
+			await loadTasks();
+		} else {
+			alert('❌ ' + data.message);
+		}
+	} catch (err) {
+		console.error('Error:', err);
+		alert('Fehler beim Einreichen');
+	}
+}
+
+// Close modal on outside click
+document.getElementById('taskModal').addEventListener('click', (e) => {
+	if (e.target.id === 'taskModal') {
+		closeModal();
+	}
+});
+
+// Init
+checkAuth();
+loadTasks();
+</script>
+</body>
+</html>

@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>Kurs - OctoCode</title>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="dashboard.css" />
+	<style>
+		.course-header-section {
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			border-radius: 16px;
+			padding: 2rem;
+			color: white;
+			margin-bottom: 2rem;
+			display: flex;
+			gap: 2rem;
+			align-items: center;
+		}
+		.course-image-large {
+			width: 300px;
+			height: 200px;
+			border-radius: 12px;
+			object-fit: cover;
+		}
+		.course-header-content {
+			flex: 1;
+		}
+		.course-title-large {
+			font-size: 2rem;
+			margin: 0 0 1rem 0;
+		}
+		.course-stats-row {
+			display: flex;
+			gap: 2rem;
+			margin-top: 1rem;
+		}
+		.stat-item {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		.lessons-container {
+			display: grid;
+			grid-template-columns: 350px 1fr;
+			gap: 2rem;
+		}
+		.lessons-sidebar {
+			background: white;
+			border-radius: 16px;
+			padding: 1.5rem;
+			box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+			height: fit-content;
+			position: sticky;
+			top: 2rem;
+		}
+		.lesson-item {
+			padding: 1rem;
+			border-radius: 10px;
+			margin-bottom: 0.75rem;
+			cursor: pointer;
+			transition: all 0.3s;
+			border: 2px solid transparent;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		.lesson-item:hover {
+			background: #f9fafb;
+			border-color: var(--accent);
+		}
+		.lesson-item.active {
+			background: linear-gradient(135deg, #dbeafe, #e0e7ff);
+			border-color: var(--accent);
+		}
+		.lesson-item.completed {
+			background: #f0fdf4;
+		}
+		.lesson-info {
+			flex: 1;
+		}
+		.lesson-title {
+			font-weight: 700;
+			margin-bottom: 0.25rem;
+		}
+		.lesson-duration {
+			font-size: 0.85rem;
+			color: var(--muted);
+		}
+		.lesson-content-area {
+			background: white;
+			border-radius: 16px;
+			padding: 2rem;
+			box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+		}
+		.lesson-video {
+			width: 100%;
+			aspect-ratio: 16/9;
+			background: #000;
+			border-radius: 12px;
+			margin-bottom: 2rem;
+		}
+		.lesson-text {
+			line-height: 1.8;
+			color: var(--text);
+		}
+		.btn-complete {
+			background: var(--success);
+			color: white;
+			padding: 1rem 2rem;
+			border: none;
+			border-radius: 10px;
+			font-weight: 700;
+			cursor: pointer;
+			margin-top: 2rem;
+			width: 100%;
+			font-size: 1rem;
+		}
+		.btn-quiz {
+			background: linear-gradient(135deg, #f59e0b, #d97706);
+			color: white;
+			padding: 1.2rem 2rem;
+			border: none;
+			border-radius: 12px;
+			font-weight: 700;
+			cursor: pointer;
+			margin-top: 2rem;
+			width: 100%;
+			font-size: 1.1rem;
+		}
+		.btn-back {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.75rem 1.5rem;
+			background: white;
+			border: 2px solid #e5e7eb;
+			border-radius: 10px;
+			cursor: pointer;
+			font-weight: 600;
+			margin-bottom: 1.5rem;
+		}
+		.progress-banner {
+			background: linear-gradient(135deg, #10b981, #059669);
+			color: white;
+			padding: 1.5rem;
+			border-radius: 12px;
+			margin-bottom: 1.5rem;
+		}
+		.progress-bar-large {
+			height: 12px;
+			background: rgba(255,255,255,0.3);
+			border-radius: 10px;
+			overflow: hidden;
+			margin-top: 0.75rem;
+		}
+		.progress-fill-large {
+			height: 100%;
+			background: white;
+			transition: width 0.5s;
+		}
+	</style>
+</head>
+<body>
+<div class="app">
+	<!-- SIDEBAR -->
+	<aside class="sidebar">
+		<div class="brand">
+			<div class="logo">OC</div>
+			<div class="brand-text">
+				<div class="name">OctoCode</div>
+				<div class="sub">Premium</div>
+			</div>
+		</div>
+
+		<nav class="nav">
+			<ul>
+				<li class="nav-item"><a href="/dashboard.html" style="color: inherit; text-decoration: none;">Dashboard</a></li>
+				<li class="nav-item active"><a href="/kurse.html" style="color: inherit; text-decoration: none;">Kurse</a></li>
+				<li class="nav-item">Bewertungen</li>
+				<li class="nav-item"><a href="/ai.html" style="color: inherit; text-decoration: none;">AI</a></li>
+				<li class="nav-item">Freunde</li>
+				<li class="nav-item">Einstellungen</li>
+			</ul>
+		</nav>
+
+		<div class="sidebar-footer">
+			<div class="profile">
+				<img id="sidebarAvatar" src="img/kid-avatar.jpg" alt="avatar" />
+				<div>
+					<div class="prof-name" id="sidebarName">User</div>
+				</div>
+			</div>
+		</div>
+	</aside>
+
+	<!-- MAIN -->
+	<main class="main">
+		<button class="btn-back" onclick="window.location.href='/kurse.html'">
+			← Zurück zu Kursen
+		</button>
+
+		<!-- Course Header -->
+		<div class="course-header-section" id="courseHeader"></div>
+
+		<!-- Progress Banner -->
+		<div class="progress-banner" id="progressBanner" style="display: none;">
+			<div style="display: flex; justify-content: space-between; align-items: center;">
+				<div>
+					<h3 style="margin: 0;">Dein Fortschritt</h3>
+					<p style="margin: 0.5rem 0 0 0; opacity: 0.9;" id="progressText">0 von 0 Lektionen abgeschlossen</p>
+				</div>
+				<div style="font-size: 2rem; font-weight: 800;" id="progressPercent">0%</div>
+			</div>
+			<div class="progress-bar-large">
+				<div class="progress-fill-large" id="progressFill"></div>
+			</div>
+		</div>
+
+		<!-- Lessons -->
+		<div class="lessons-container">
+			<div class="lessons-sidebar">
+				<h3 style="margin-top: 0;">📖 Lektionen</h3>
+				<div id="lessonsList"></div>
+
+				<div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 2px solid #e5e7eb;">
+					<h4 style="margin: 0 0 1rem 0;">🎓 Abschlussquiz</h4>
+					<button class="btn-quiz" id="quizBtn" onclick="startQuiz()" disabled>
+						Quiz starten
+					</button>
+				</div>
+			</div>
+
+			<div class="lesson-content-area" id="lessonContent">
+				<h2 id="lessonTitle">Wähle eine Lektion</h2>
+				<p id="lessonDescription">Klicke auf eine Lektion links, um zu beginnen</p>
+			</div>
+		</div>
+	</main>
+</div>
+
+<script>
+let currentCourse = null;
+let currentLesson = null;
+let courseId = null;
+
+// Get course ID from URL
+const urlParams = new URLSearchParams(window.location.search);
+courseId = urlParams.get('id');
+
+if (!courseId) {
+	alert('Kein Kurs ausgewählt');
+	window.location.href = '/kurse.html';
+}
+
+// Auth
+async function checkAuth() {
+	try {
+		const res = await fetch('/api/check-auth', { credentials: 'include' });
+		const data = await res.json();
+		if (!data.authenticated) {
+			window.location.href = '/index.html';
+			return;
+		}
+		document.getElementById('sidebarName').textContent = data.user.name;
+		if (data.user.avatar_url) {
+			document.getElementById('sidebarAvatar').src = data.user.avatar_url;
+		}
+	} catch (err) {
+		console.error('Auth error:', err);
+	}
+}
+
+// Load course
+async function loadCourse() {
+	try {
+		const res = await fetch(`/api/courses/${courseId}`, { credentials: 'include' });
+		const data = await res.json();
+
+		if (!data.success) {
+			alert('Kurs nicht gefunden');
+			window.location.href = '/kurse.html';
+			return;
+		}
+
+		currentCourse = data.course;
+
+		// Render header
+		document.getElementById('courseHeader').innerHTML = `
+			<img class="course-image-large" src="${currentCourse.image_url}" alt="${currentCourse.title}">
+			<div class="course-header-content">
+				<h1 class="course-title-large">${currentCourse.title}</h1>
+				<p>${currentCourse.description}</p>
+				<div class="course-stats-row">
+					<div class="stat-item">⭐ ${currentCourse.rating}</div>
+					<div class="stat-item">⏱️ ${currentCourse.duration}</div>
+					<div class="stat-item">📚 ${currentCourse.lessons.length} Lektionen</div>
+					<div class="stat-item">🎓 ${currentCourse.difficulty}</div>
+				</div>
+			</div>
+		`;
+
+		// Render lessons
+		renderLessons();
+		updateProgress();
+
+		// Check if quiz available
+		const allCompleted = currentCourse.lessons.every(l => l.completed);
+		if (allCompleted && currentCourse.quiz) {
+			document.getElementById('quizBtn').disabled = false;
+		}
+
+	} catch (err) {
+		console.error('Error:', err);
+		alert('Fehler beim Laden des Kurses');
+	}
+}
+
+// Render lessons
+function renderLessons() {
+	const list = document.getElementById('lessonsList');
+	list.innerHTML = currentCourse.lessons.map(lesson => `
+		<div class="lesson-item ${lesson.completed ? 'completed' : ''}" onclick="selectLesson(${lesson.id})">
+			<div class="lesson-info">
+				<div class="lesson-title">${lesson.title}</div>
+				<div class="lesson-duration">⏱️ ${lesson.duration} Min</div>
+			</div>
+			${lesson.completed ? '<span style="font-size: 1.5rem;">✅</span>' : ''}
+		</div>
+	`).join('');
+}
+
+// Select lesson
+function selectLesson(lessonId) {
+	currentLesson = currentCourse.lessons.find(l => l.id === lessonId);
+
+	// Update active state
+	document.querySelectorAll('.lesson-item').forEach(item => {
+		item.classList.remove('active');
+	});
+	event.currentTarget.classList.add('active');
+
+	// Render content
+	const contentArea = document.getElementById('lessonContent');
+	contentArea.innerHTML = `
+		<h2 id="lessonTitle">${currentLesson.title}</h2>
+
+		${currentLesson.video_url ? `
+			<iframe class="lesson-video" src="${currentLesson.video_url}" allowfullscreen></iframe>
+		` : `
+			<div class="lesson-video" style="display: flex; align-items: center; justify-content: center; color: white;">
+				📹 Video-Inhalt
+			</div>
+		`}
+
+		<div class="lesson-text">
+			<p>${currentLesson.content || 'Lektion Inhalt wird geladen...'}</p>
+
+			<h3>Was du lernen wirst:</h3>
+			<ul>
+				<li>Grundlegende Konzepte verstehen</li>
+				<li>Praktische Anwendungen kennenlernen</li>
+				<li>Übungen durchführen</li>
+			</ul>
+
+			<h3>Wichtige Punkte:</h3>
+			<p>Diese Lektion behandelt wichtige Themen, die für deinen Lernfortschritt essentiell sind. Nimm dir Zeit und arbeite die Inhalte sorgfältig durch.</p>
+		</div>
+
+		${!currentLesson.completed ? `
+			<button class="btn-complete" onclick="completeLesson()">
+				✓ Lektion als abgeschlossen markieren
+			</button>
+		` : `
+			<div style="background: #f0fdf4; padding: 1rem; border-radius: 10px; text-align: center; margin-top: 2rem;">
+				<strong style="color: var(--success);">✅ Lektion abgeschlossen!</strong>
+			</div>
+		`}
+	`;
+}
+
+// Complete lesson
+async function completeLesson() {
+	try {
+		const res = await fetch(`/api/lessons/${currentLesson.id}/complete`, {
+			method: 'POST',
+			credentials: 'include'
+		});
+
+		const data = await res.json();
+		if (data.success) {
+			currentLesson.completed = true;
+			await loadCourse();
+			selectLesson(currentLesson.id);
+		}
+	} catch (err) {
+		console.error('Error:', err);
+		alert('Fehler beim Speichern');
+	}
+}
+
+// Update progress
+function updateProgress() {
+	const completed = currentCourse.lessons.filter(l => l.completed).length;
+	const total = currentCourse.lessons.length;
+	const percent = Math.round((completed / total) * 100);
+
+	if (completed > 0) {
+		document.getElementById('progressBanner').style.display = 'block';
+		document.getElementById('progressText').textContent = `${completed} von ${total} Lektionen abgeschlossen`;
+		document.getElementById('progressPercent').textContent = `${percent}%`;
+		document.getElementById('progressFill').style.width = `${percent}%`;
+	}
+}
+
+// Start quiz
+function startQuiz() {
+	if (currentCourse.quiz) {
+		window.location.href = `/quiz.html?id=${currentCourse.quiz.id}`;
+	}
+}
+
+// Init
+checkAuth();
+loadCourse();
+</script>
+</body>
+</html>

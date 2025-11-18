@@ -1,0 +1,143 @@
+.courses {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.course-card {
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+    box-shadow: 0 10px 35px rgba(0,0,0,0.15);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.course-card:hover {
+    transform: translateY(-10px) scale(1.03);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+}
+
+.course-card img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    transition: transform 0.4s ease, filter 0.4s ease;
+}
+
+.course-card:hover img {
+    transform: scale(1.06);
+    filter: brightness(1.1);
+}
+
+.course-card h4 {
+    margin: 0.5rem 0 0.25rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.course-card p {
+    font-size: 0.95rem;
+    color: #ddd;
+    flex-grow: 1;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+.category-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 14px;
+    color: #fff;
+    display: inline-block;
+    margin-bottom: 0.75rem;
+    text-transform: capitalize;
+    background: linear-gradient(135deg, #3b82f6, #06b6d4);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+}
+
+.progress-line {
+    background: rgba(255,255,255,0.15);
+    height: 8px;
+    border-radius: 5px;
+    margin: 0.5rem 0 1rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    background: linear-gradient(90deg, #3b82f6, #06b6d4);
+    height: 100%;
+    width: 0%;
+    border-radius: 5px;
+    transition: width 1s ease-in-out;
+}
+
+.stats {
+    font-size: 0.85rem;
+    color: #ccc;
+    margin-bottom: 0.75rem;
+}
+
+
+
+.btn-enroll {
+    padding: 0.55rem 1.2rem;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-enroll.enrolled {
+    background-color: rgba(255,255,255,0.2);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+.btn-enroll.enrolled:hover {
+    background-color: rgba(255,255,255,0.3);
+}
+
+.btn-enroll.not-enrolled {
+    background: linear-gradient(135deg, #3b82f6, #06b6d4);
+    color: #fff;
+}
+
+.btn-enroll.not-enrolled:hover {
+    background: linear-gradient(135deg, #2563eb, #0d9488);
+}
+
+/* Фильтры */
+.filter-bar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    background-color: #374151;
+    border: none;
+    padding: 0.45rem 0.9rem;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.3s;
+    color: #fff;
+}
+
+.filter-btn.active {
+    background: linear-gradient(135deg, #3b82f6, #06b6d4);
+    color: #fff;
+}
