@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>Freunde - OctoCode</title>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="dashboard.css" />
+	<style>
+		.search-box {
+			display: flex;
+			gap: 12px;
+			margin-bottom: 20px;
+		}
+		.search-box input {
+			flex: 1;
+			padding: 12px 16px;
+			border: 2px solid #e2e8f0;
+			border-radius: 10px;
+			font-size: 14px;
+			font-family: inherit;
+		}
+		.search-box button {
+			padding: 12px 24px;
+			background: var(--accent);
+			color: white;
+			border: none;
+			border-radius: 10px;
+			font-weight: 700;
+			cursor: pointer;
+			transition: all 0.2s;
+		}
+		.search-box button:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+		}
+		.user-card {
+			display: flex;
+			align-items: center;
+			gap: 14px;
+			padding: 14px;
+			border-radius: 12px;
+			background: linear-gradient(180deg, #fff, #fbfdff);
+			box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+			margin-bottom: 12px;
+		}
+		.user-card .avatar {
+			width: 48px;
+			height: 48px;
+			border-radius: 10px;
+			overflow: hidden;
+		}
+		.user-card .avatar img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+		.user-info {
+			flex: 1;
+		}
+		.user-info .name {
+			font-weight: 700;
+			font-size: 15px;
+		}
+		.user-info .email {
+			font-size: 13px;
+			color: var(--muted);
+		}
+		.user-info .points {
+			font-size: 13px;
+			color: var(--accent);
+			font-weight: 700;
+			margin-top: 4px;
+		}
+		.btn-primary, .btn-success {
+			padding: 8px 16px;
+			border: none;
+			border-radius: 8px;
+			font-weight: 700;
+			cursor: pointer;
+			transition: all 0.2s;
+			font-size: 13px;
+		}
+		.btn-primary {
+			background: var(--accent);
+			color: white;
+		}
+		.btn-primary:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+		}
+		.btn-success {
+			background: var(--success);
+			color: white;
+		}
+		.btn-success:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+		}
+		.section-title {
+			font-size: 18px;
+			font-weight: 800;
+			margin: 24px 0 16px 0;
+			color: var(--text);
+		}
+		.empty-state {
+			text-align: center;
+			padding: 40px 20px;
+			color: var(--muted);
+		}
+		.empty-state .icon {
+			font-size: 48px;
+			margin-bottom: 12px;
+		}
+	</style>
+</head>
+<body>
+<div class="app">
+	<!-- SIDEBAR -->
+	<aside class="sidebar" aria-label="Navbar">
+		<div class="brand">
+			<div class="logo">OC</div>
+			<div class="brand-text">
+				<div class="name">OctoCode</div>
+				<div class="sub">Premium</div>
+			</div>
+		</div>
+
+		<nav class="nav">
+			<ul>
+				<li class="nav-item" onclick="window.location.href='dashboard.html'">Dashboard</li>
+				<li class="nav-item" onclick="window.location.href='kurse.html'">Kurse</li>
+				<li class="nav-item" onclick="window.location.href='bewertungen.html'">Bewertungen</li>
+				<li class="nav-item" onclick="window.location.href='ai.html'">AI</li>
+				<li class="nav-item active" aria-current="page">Freunde</li>
+				<li class="nav-item" onclick="window.location.href='einstellungen.html'">Einstellungen</li>
+			</ul>
+		</nav>
+
+		<div class="sidebar-footer">
+			<div class="theme-switch">
+				<label class="switch">
+					<input id="themeToggle" type="checkbox">
+					<span class="slider"></span>
+				</label>
+				<small>Dunkles Thema</small>
+			</div>
+			<div class="profile">
+				<img src="https://api.dicebear.com/7.x/avataaars/svg?seed=default" alt="avatar" />
+				<div>
+					<div class="prof-name">Laden...</div>
+					<div class="prof-score">0 Punkte</div>
+				</div>
+			</div>
+		</div>
+	</aside>
+
+	<!-- MAIN -->
+	<main class="main">
+		<header class="main-header">
+			<div>
+				<h1>👥 Freunde</h1>
+				<p class="muted">Verbinde dich mit anderen Schülern und vergleiche eure Fortschritte!</p>
+			</div>
+		</header>
+
+		<section class="card" style="margin-bottom: 20px;">
+			<h3>🔍 Freunde finden</h3>
+			<div class="search-box">
+				<input type="text" id="searchInput" placeholder="Name oder E-Mail eingeben..." />
+				<button id="searchBtn">Suchen</button>
+			</div>
+			<div id="searchResults"></div>
+		</section>
+
+		<section class="card" style="margin-bottom: 20px;">
+			<div class="card-header">
+				<h3>📬 Freundschaftsanfragen</h3>
+				<span id="requestsCount" style="background: var(--accent); color: white; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700;">0</span>
+			</div>
+			<div id="friendRequests">
+				<div class="empty-state">
+					<div class="icon">📭</div>
+					<p>Keine ausstehenden Anfragen</p>
+				</div>
+			</div>
+		</section>
+
+		<section class="card">
+			<div class="card-header">
+				<h3>✨ Meine Freunde</h3>
+				<span id="friendsCount" style="background: var(--success); color: white; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700;">0</span>
+			</div>
+			<div id="friendsList">
+				<div class="empty-state">
+					<div class="icon">👋</div>
+					<p>Noch keine Freunde. Suche nach Schülern und füge sie hinzu!</p>
+				</div>
+			</div>
+		</section>
+
+		<footer class="footer">
+			<div>© OctoCode – 2025</div>
+		</footer>
+	</main>
+</div>
+
+<script>
+// Глобальные переменные
+let currentUser = null;
+
+// Проверка авторизации
+async function loadAuth() {
+	try {
+		console.log('🔐 Проверка авторизации...');
+		const res = await fetch('/api/check-auth', {
+			credentials: 'include',
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		});
+
+		if (!res.ok) {
+			throw new Error(`HTTP ${res.status}`);
+		}
+
+		const data = await res.json();
+		console.log('✅ Auth response:', data);
+
+		if (data.authenticated) {
+			currentUser = data.user;
+
+			// Обновляем UI
+			document.querySelector('.prof-name').textContent = currentUser.name;
+			document.querySelector('.prof-score').textContent = `${currentUser.points || 0} Punkte`;
+
+			let avatarUrl = currentUser.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(currentUser.name)}`;
+			document.querySelectorAll('.profile img').forEach(img => img.src = avatarUrl);
+
+			console.log('👤 Пользователь загружен:', currentUser.name);
+
+			// Загружаем данные
+			await loadFriends();
+			await loadFriendRequests();
+		} else {
+			console.log('❌ Не авторизован, редирект...');
+			alert('Bitte melden Sie sich zuerst an!');
+			window.location.href = '/';
+		}
+	} catch (err) {
+		console.error('❌ Ошибка загрузки auth:', err);
+		alert('Verbindungsfehler zum Server. Bitte prüfen Sie ob app.py läuft.');
+		setTimeout(() => {
+			window.location.href = '/';
+		}, 2000);
+	}
+}
+
+// Загрузка друзей
+async function loadFriends() {
+	try {
+		console.log('👥 Загрузка друзей...');
+		const res = await fetch('/api/friends/list', { credentials: 'include' });
+
+		if (!res.ok) {
+			throw new Error(`HTTP ${res.status}`);
+		}
+
+		const friends = await res.json();
+		console.log('✅ Друзья загружены:', friends.length);
+
+		const container = document.getElementById('friendsList');
+		const countEl = document.getElementById('friendsCount');
+		countEl.textContent = friends.length;
+
+		if (friends.length === 0) {
+			container.innerHTML = `
+				<div class="empty-state">
+					<div class="icon">👋</div>
+					<p>Noch keine Freunde. Suche nach Schülern und füge sie hinzu!</p>
+				</div>
+			`;
+			return;
+		}
+
+		friends.sort((a, b) => (b.points || 0) - (a.points || 0));
+
+		container.innerHTML = friends.map((friend, index) => {
+			const avatarUrl = friend.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(friend.name)}`;
+			const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+			return `
+				<div class="user-card">
+					<div class="avatar">
+						<img src="${avatarUrl}" alt="${friend.name}">
+					</div>
+					<div class="user-info">
+						<div class="name">${medal} ${friend.name}</div>
+						<div class="points">${friend.points || 0} Punkte</div>
+					</div>
+				</div>
+			`;
+		}).join('');
+	} catch (err) {
+		console.error('❌ Ошибка загрузки друзей:', err);
+	}
+}
+
+// Загрузка заявок в друзья
+async function loadFriendRequests() {
+	try {
+		console.log('📬 Загрузка заявок...');
+		const res = await fetch('/api/friends/requests', { credentials: 'include' });
+
+		if (!res.ok) {
+			throw new Error(`HTTP ${res.status}`);
+		}
+
+		const requests = await res.json();
+		console.log('✅ Заявки загружены:', requests.length);
+
+		const container = document.getElementById('friendRequests');
+		const countEl = document.getElementById('requestsCount');
+		countEl.textContent = requests.length;
+
+		if (requests.length === 0) {
+			container.innerHTML = `
+				<div class="empty-state">
+					<div class="icon">📭</div>
+					<p>Keine ausstehenden Anfragen</p>
+				</div>
+			`;
+			return;
+		}
+
+		container.innerHTML = requests.map(req => {
+			const avatarUrl = req.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(req.name)}`;
+			return `
+				<div class="user-card">
+					<div class="avatar">
+						<img src="${avatarUrl}" alt="${req.name}">
+					</div>
+					<div class="user-info">
+						<div class="name">${req.name}</div>
+						<div class="points">${req.points || 0} Punkte</div>
+					</div>
+					<button class="btn-success" onclick="acceptRequest(${req.id})">✓ Akzeptieren</button>
+				</div>
+			`;
+		}).join('');
+	} catch (err) {
+		console.error('❌ Ошибка загрузки заявок:', err);
+	}
+}
+
+// Поиск пользователей
+async function searchFriends() {
+	const query = document.getElementById('searchInput').value.trim();
+	const container = document.getElementById('searchResults');
+
+	if (!query || query.length < 2) {
+		container.innerHTML = '';
+		return;
+	}
+
+	try {
+		console.log('🔍 Поиск:', query);
+		const res = await fetch(`/api/friends/search?q=${encodeURIComponent(query)}`, {
+			credentials: 'include'
+		});
+
+		if (!res.ok) {
+			throw new Error(`HTTP ${res.status}`);
+		}
+
+		const users = await res.json();
+		console.log('✅ Найдено пользователей:', users.length);
+
+		if (users.length === 0) {
+			container.innerHTML = `
+				<div class="empty-state">
+					<div class="icon">🔍</div>
+					<p>Keine Benutzer gefunden</p>
+				</div>
+			`;
+			return;
+		}
+
+		container.innerHTML = '<div class="section-title">Suchergebnisse</div>' + users.map(user => {
+			const avatarUrl = user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.name)}`;
+			return `
+				<div class="user-card">
+					<div class="avatar">
+						<img src="${avatarUrl}" alt="${user.name}">
+					</div>
+					<div class="user-info">
+						<div class="name">${user.name}</div>
+						<div class="email">${user.email}</div>
+						<div class="points">${user.points || 0} Punkte</div>
+					</div>
+					<button class="btn-primary" onclick="sendRequest(${user.id})">+ Anfrage senden</button>
+				</div>
+			`;
+		}).join('');
+	} catch (err) {
+		console.error('❌ Ошибка поиска:', err);
+		alert('Fehler bei der Suche');
+	}
+}
+
+// Отправка заявки в друзья
+async function sendRequest(friendId) {
+	try {
+		console.log('📤 Отправка заявки:', friendId);
+		const res = await fetch('/api/friends/request', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({ friend_id: friendId })
+		});
+
+		const data = await res.json();
+		alert(data.message);
+
+		if (data.success) {
+			document.getElementById('searchInput').value = '';
+			document.getElementById('searchResults').innerHTML = '';
+			console.log('✅ Заявка отправлена');
+		}
+	} catch (err) {
+		console.error('❌ Ошибка отправки заявки:', err);
+		alert('Fehler beim Senden der Anfrage');
+	}
+}
+
+// Принятие заявки
+async function acceptRequest(friendId) {
+	try {
+		console.log('✅ Принятие заявки:', friendId);
+		const res = await fetch('/api/friends/accept', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({ friend_id: friendId })
+		});
+
+		const data = await res.json();
+		alert(data.message);
+
+		if (data.success) {
+			await loadFriends();
+			await loadFriendRequests();
+			console.log('✅ Заявка принята');
+		}
+	} catch (err) {
+		console.error('❌ Ошибка принятия заявки:', err);
+		alert('Fehler beim Akzeptieren');
+	}
+}
+
+// Выход
+async function logout() {
+	if (!confirm('Möchten Sie sich wirklich abmelden?')) return;
+	try {
+		const res = await fetch('/api/logout', { method:'POST', credentials:'include' });
+		const data = await res.json();
+		alert(data.message);
+		window.location.href = '/';
+	} catch(err) {
+		console.error(err);
+		alert('Fehler beim Abmelden');
+	}
+}
+
+// Инициализация
+document.addEventListener('DOMContentLoaded', () => {
+	console.log('🚀 Freunde Seite lädt...');
+
+	// Загружаем авторизацию
+	loadAuth();
+
+	// Поиск
+	document.getElementById('searchBtn').addEventListener('click', searchFriends);
+	document.getElementById('searchInput').addEventListener('keypress', (e) => {
+		if (e.key === 'Enter') searchFriends();
+	});
+
+	// Кнопка выхода
+	const sidebar = document.querySelector('.sidebar-footer');
+	if (sidebar && !document.getElementById('logoutBtn')) {
+		const btn = document.createElement('button');
+		btn.id = 'logoutBtn';
+		btn.textContent = '🚪 Abmelden';
+		btn.style.cssText = 'width:100%;padding:12px;background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.3);border-radius:10px;font-weight:700;cursor:pointer;margin-top:12px;transition:all 0.2s;';
+		btn.addEventListener('mouseenter', () => {
+			btn.style.background = '#ef4444';
+			btn.style.color = '#fff';
+		});
+		btn.addEventListener('mouseleave', () => {
+			btn.style.background = 'rgba(239,68,68,0.1)';
+			btn.style.color = '#ef4444';
+		});
+		btn.addEventListener('click', logout);
+		sidebar.appendChild(btn);
+	}
+
+	console.log('✅ Freunde Seite bereit!');
+});
+</script>
+</body>
+</html>
