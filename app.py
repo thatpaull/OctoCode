@@ -989,17 +989,16 @@ def get_my_courses():
 @app.route('/api/enroll', methods=['POST'])
 def enroll_course():
     if 'user_id' not in session:
-        return jsonify({"success": False, "message": "Nicht authentifiziert"}), 401
+        return jsonify({"success": False, "message": "Not authenticated"}), 401
 
     data = request.get_json() or {}
     course_id = data.get('course_id')
 
     if not course_id:
-        return jsonify({"success": False, "message": "Kurs-ID fehlt"}), 400
+        return jsonify({"success": False, "message": "Course ID missing"}), 400
 
     db = get_db()
 
-    # prüfen ob user schon eingeschrieben ist
     existing = db.execute(
         "SELECT id FROM enrollments WHERE user_id = ? AND course_id = ?",
         (session['user_id'], course_id)
@@ -1007,9 +1006,8 @@ def enroll_course():
 
     if existing:
         db.close()
-        return jsonify({"success": False, "message": "Bereits eingeschrieben"}), 400
+        return jsonify({"success": False, "message": "Already enrolled"}), 400
 
-    # speichern
     db.execute(
         "INSERT INTO enrollments (user_id, course_id) VALUES (?, ?)",
         (session['user_id'], course_id)
@@ -1017,8 +1015,38 @@ def enroll_course():
     db.commit()
     db.close()
 
-    return jsonify({"success": True, "message": "Erfolgreich eingeschrieben"}), 200
+    return jsonify({"success": True, "message": "Successfully enrolled"}), 200
 
+@app.route('/api/unenroll', methods=['POST'])
+def unenroll_course():
+    if 'user_id' not in session:
+        return jsonify({"success": False, "message": "Not authenticated"}), 401
+
+    data = request.get_json() or {}
+    course_id = data.get('course_id')
+
+    if not course_id:
+        return jsonify({"success": False, "message": "Course ID missing"}), 400
+
+    db = get_db()
+
+    existing = db.execute(
+        "SELECT id FROM enrollments WHERE user_id = ? AND course_id = ?",
+        (session['user_id'], course_id)
+    ).fetchone()
+
+    if not existing:
+        db.close()
+        return jsonify({"success": False, "message": "Not enrolled in this course"}), 400
+
+    db.execute(
+        "DELETE FROM enrollments WHERE user_id = ? AND course_id = ?",
+        (session['user_id'], course_id)
+    )
+    db.commit()
+    db.close()
+
+    return jsonify({"success": True, "message": "Successfully unenrolled"}), 200
 @app.route('/api/profile', methods=['GET', 'PUT'])
 def profile():
     if 'user_id' not in session:

@@ -54,7 +54,9 @@
 		.enroll-btn.enrolled {
 			background: var(--success);
 			color: white;
-			cursor: default;
+		}
+		.enroll-btn.enrolled:hover {
+			background: #dc2626;
 		}
 		.tabs {
 			display: flex;
@@ -79,7 +81,6 @@
 </head>
 <body>
 <div class="app">
-	<!-- SIDEBAR -->
 	<aside class="sidebar" aria-label="Navbar">
 		<div class="brand">
 			<div class="logo">OC</div>
@@ -118,7 +119,6 @@
 		</div>
 	</aside>
 
-	<!-- MAIN -->
 	<main class="main">
 		<header class="main-header">
 			<div>
@@ -154,7 +154,7 @@ let currentFilter = 'all';
 
 async function loadAuth() {
 	try {
-		console.log('🔐 Проверка авторизации...');
+		console.log('Prüfe Authentifizierung...');
 		const res = await fetch('/api/check-auth', { credentials: 'include' });
 		const data = await res.json();
 
@@ -178,23 +178,21 @@ async function loadAuth() {
 
 async function loadCourses() {
 	try {
-		console.log('📚 Загрузка всех курсов...');
+		console.log('Lade Kurse...');
 
-		// Загружаем все курсы
 		const allRes = await fetch('/api/courses', { credentials: 'include' });
 		allCourses = await allRes.json();
 
-		// Загружаем курсы пользователя
 		const myRes = await fetch('/api/my-courses', { credentials: 'include' });
 		const myCourses = await myRes.json();
 		enrolledCourseIds = myCourses.map(c => c.id);
 
-		console.log('✅ Всего курсов:', allCourses.length);
-		console.log('✅ Записан на:', enrolledCourseIds.length);
+		console.log('Alle Kurse:', allCourses.length);
+		console.log('Eingeschrieben:', enrolledCourseIds.length);
 
 		displayCourses();
 	} catch (err) {
-		console.error('❌ Ошибка загрузки курсов:', err);
+		console.error('Fehler beim Laden der Kurse:', err);
 		const container = document.getElementById('coursesContainer');
 		container.innerHTML = `
 			<div style="text-align: center; padding: 40px; color: var(--muted); grid-column: 1 / -1;">
@@ -208,7 +206,6 @@ async function loadCourses() {
 function filterCourses(filter) {
 	currentFilter = filter;
 
-	// Update tabs
 	document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
 	event.target.classList.add('active');
 
@@ -252,7 +249,7 @@ function displayCourses() {
 				<div class="course-header">
 					<div class="course-badge ${badgeClass}">${course.category || 'Coding'}</div>
 					${isEnrolled ?
-						'<button class="enroll-btn enrolled">✓ Eingeschrieben</button>' :
+						`<button class="enroll-btn enrolled" onclick="unenrollCourse(${course.id})">✓ Abmelden</button>` :
 						`<button class="enroll-btn primary" onclick="enrollCourse(${course.id})">+ Einschreiben</button>`
 					}
 				</div>
@@ -268,7 +265,7 @@ function displayCourses() {
 
 async function enrollCourse(courseId) {
 	try {
-		console.log('📝 Записываюсь на курс:', courseId);
+		console.log('Einschreiben in Kurs:', courseId);
 
 		const res = await fetch('/api/enroll', {
 			method: 'POST',
@@ -283,13 +280,42 @@ async function enrollCourse(courseId) {
 			alert(data.message);
 			enrolledCourseIds.push(courseId);
 			displayCourses();
-			console.log('✅ Успешно записан на курс');
+			console.log('Erfolgreich eingeschrieben');
 		} else {
 			alert(data.message);
 		}
 	} catch (err) {
-		console.error('❌ Ошибка записи:', err);
+		console.error('Fehler beim Einschreiben:', err);
 		alert('Fehler beim Einschreiben');
+	}
+}
+
+async function unenrollCourse(courseId) {
+	if (!confirm('Möchtest du dich wirklich von diesem Kurs abmelden?')) return;
+
+	try {
+		console.log('Abmelden von Kurs:', courseId);
+
+		const res = await fetch('/api/unenroll', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({ course_id: courseId })
+		});
+
+		const data = await res.json();
+
+		if (data.success) {
+			alert(data.message);
+			enrolledCourseIds = enrolledCourseIds.filter(id => id !== courseId);
+			displayCourses();
+			console.log('Erfolgreich abgemeldet');
+		} else {
+			alert(data.message);
+		}
+	} catch (err) {
+		console.error('Fehler beim Abmelden:', err);
+		alert('Fehler beim Abmelden');
 	}
 }
 
@@ -307,10 +333,9 @@ async function logout() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-	console.log('🚀 Kurse Seite lädt...');
+	console.log('Kurse Seite lädt...');
 	loadAuth();
 
-	// Logout button
 	const sidebar = document.querySelector('.sidebar-footer');
 	if (sidebar && !document.getElementById('logoutBtn')) {
 		const btn = document.createElement('button');
@@ -329,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		sidebar.appendChild(btn);
 	}
 
-	console.log('✅ Kurse Seite bereit!');
+	console.log('Kurse Seite bereit!');
 });
 </script>
 </body>
