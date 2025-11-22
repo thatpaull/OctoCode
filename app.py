@@ -1019,6 +1019,53 @@ def enroll_course():
 
     return jsonify({"success": True, "message": "Erfolgreich eingeschrieben"}), 200
 
+@app.route('/api/profile', methods=['GET', 'PUT'])
+def profile():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Nicht authentifiziert'}), 401
+
+    db = get_db()
+    try:
+        if request.method == 'GET':
+            profile = db.execute('SELECT * FROM profiles WHERE user_id = ?', (session['user_id'],)).fetchone()
+            db.close()
+            if not profile:
+                return jsonify({}), 200
+            profile_dict = safe_dict(profile)
+            return jsonify(profile_dict), 200
+
+        elif request.method == 'PUT':
+            data = request.get_json() or {}
+            # Validierung optional, z.B. max. Länge, Datumsformat
+            db.execute('''
+                UPDATE profiles
+                SET avatar_url = ?, birthdate = ?, country = ?, bio = ?, favorite_language = ?,
+                    experience_level = ?, profile_visible = ?, friend_requests = ?, email_notifications = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = ?
+            ''', (
+                data.get('avatar_url'),
+                data.get('birthdate'),
+                data.get('country'),
+                data.get('bio'),
+                data.get('favorite_language'),
+                data.get('experience_level'),
+                int(data.get('profile_visible', True)),
+                int(data.get('friend_requests', True)),
+                int(data.get('email_notifications', True)),
+                session['user_id']
+            ))
+            db.commit()
+            db.close()
+            return jsonify({'success': True, 'message': 'Profil erfolgreich gespeichert'}), 200
+
+    except Exception as e:
+        db.close()
+        print(f"❌ Profile error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 if __name__ == '__main__':
 	init_db()
 	print("=" * 60)
