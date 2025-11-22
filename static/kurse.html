@@ -10,159 +10,70 @@
 		.courses-grid {
 			display: grid;
 			grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-			gap: 2rem;
-			margin-top: 2rem;
+			gap: 20px;
+			margin-top: 24px;
 		}
 		.course-card {
 			background: white;
-			border-radius: 16px;
-			overflow: hidden;
-			box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-			transition: all 0.3s;
-			cursor: pointer;
-			border: 2px solid transparent;
+			border-radius: 14px;
+			padding: 20px;
+			box-shadow: var(--shadow);
+			transition: transform 0.2s, box-shadow 0.2s;
 		}
 		.course-card:hover {
-			transform: translateY(-8px);
-			box-shadow: 0 12px 32px rgba(0,0,0,0.15);
-			border-color: var(--accent);
+			transform: translateY(-4px);
+			box-shadow: 0 12px 40px rgba(16,24,40,0.12);
 		}
-		.course-image {
-			width: 100%;
-			height: 200px;
-			object-fit: cover;
-			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		}
-		.course-body {
-			padding: 1.5rem;
+		.course-card.enrolled {
+			border: 2px solid var(--success);
+			background: linear-gradient(180deg, #f0fdf4, #ffffff);
 		}
 		.course-header {
 			display: flex;
 			justify-content: space-between;
-			align-items: start;
-			margin-bottom: 1rem;
+			align-items: flex-start;
+			margin-bottom: 12px;
 		}
-		.course-badge {
-			display: inline-block;
-			padding: 0.4rem 0.8rem;
-			border-radius: 20px;
-			font-size: 0.75rem;
-			font-weight: 700;
-			color: white;
-		}
-		.course-rating {
-			display: flex;
-			align-items: center;
-			gap: 0.3rem;
-			font-weight: 600;
-			color: #f59e0b;
-		}
-		.course-title {
-			font-size: 1.3rem;
-			font-weight: 800;
-			margin: 0.5rem 0;
-			color: var(--text);
-		}
-		.course-desc {
-			color: var(--muted);
-			font-size: 0.9rem;
-			line-height: 1.5;
-			margin-bottom: 1rem;
-		}
-		.course-meta {
-			display: flex;
-			gap: 1.5rem;
-			margin: 1rem 0;
-			font-size: 0.85rem;
-			color: var(--muted);
-		}
-		.meta-item {
-			display: flex;
-			align-items: center;
-			gap: 0.4rem;
-		}
-		.progress-bar {
-			height: 8px;
-			background: #f1f5f9;
-			border-radius: 10px;
-			overflow: hidden;
-			margin: 1rem 0;
-		}
-		.progress-fill {
-			height: 100%;
-			background: linear-gradient(90deg, var(--accent), var(--accent-2));
-			transition: width 0.5s;
-		}
-		.btn-enroll, .btn-continue {
-			width: 100%;
-			padding: 0.9rem;
+		.enroll-btn {
+			padding: 8px 16px;
 			border: none;
-			border-radius: 10px;
+			border-radius: 8px;
 			font-weight: 700;
 			cursor: pointer;
-			transition: all 0.3s;
-			font-size: 0.95rem;
+			transition: all 0.2s;
+			font-size: 13px;
 		}
-		.btn-enroll {
-			background: linear-gradient(135deg, var(--accent), var(--accent-2));
+		.enroll-btn.primary {
+			background: var(--accent);
 			color: white;
 		}
-		.btn-enroll:hover {
-			transform: scale(1.02);
-			box-shadow: 0 8px 20px rgba(37,99,235,0.3);
+		.enroll-btn.primary:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 4px 12px rgba(37,99,235,0.3);
 		}
-		.btn-continue {
+		.enroll-btn.enrolled {
 			background: var(--success);
 			color: white;
+			cursor: default;
 		}
-		.btn-unenroll {
-			background: #ef4444;
-			color: white;
-		}
-		.filter-section {
+		.tabs {
 			display: flex;
-			gap: 1rem;
-			margin: 2rem 0;
-			flex-wrap: wrap;
+			gap: 12px;
+			margin-bottom: 24px;
 		}
-		.filter-btn {
-			padding: 0.6rem 1.2rem;
-			border: 2px solid #e5e7eb;
-			background: white;
+		.tab {
+			padding: 10px 20px;
+			background: transparent;
+			border: 2px solid #e2e8f0;
 			border-radius: 10px;
-			font-weight: 600;
+			font-weight: 700;
 			cursor: pointer;
-			transition: all 0.3s;
+			transition: all 0.2s;
 		}
-		.filter-btn.active {
+		.tab.active {
 			background: var(--accent);
 			color: white;
 			border-color: var(--accent);
-		}
-		.empty-state {
-			text-align: center;
-			padding: 4rem 2rem;
-			color: var(--muted);
-		}
-		.stats-banner {
-			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-			border-radius: 16px;
-			padding: 2rem;
-			color: white;
-			margin-bottom: 2rem;
-			display: flex;
-			justify-content: space-around;
-		}
-		.stat-box {
-			text-align: center;
-		}
-		.stat-number {
-			font-size: 2.5rem;
-			font-weight: 800;
-		}
-		.stat-label {
-			opacity: 0.9;
-			margin-top: 0.5rem;
 		}
 	</style>
 </head>
@@ -180,12 +91,12 @@
 
 		<nav class="nav">
 			<ul>
-				<li class="nav-item"><a href="/dashboard.html" style="color: inherit; text-decoration: none;">Dashboard</a></li>
+				<li class="nav-item" onclick="window.location.href='dashboard.html'">Dashboard</li>
 				<li class="nav-item active" aria-current="page">Kurse</li>
 				<li class="nav-item">Bewertungen</li>
-				<li class="nav-item"><a href="/ai.html" style="color: inherit; text-decoration: none;">AI</a></li>
-				<li class="nav-item">Freunde</li>
-				<li class="nav-item">Einstellungen</li>
+				<li class="nav-item" onclick="window.location.href='ai.html'">AI</li>
+				<li class="nav-item" onclick="window.location.href='freunde.html'">Freunde</li>
+				<li class="nav-item" onclick="window.location.href='einstellungen.html'">Einstellungen</li>
 			</ul>
 		</nav>
 
@@ -198,10 +109,10 @@
 				<small>Dunkles Thema</small>
 			</div>
 			<div class="profile">
-				<img id="sidebarAvatar" src="img/kid-avatar.jpg" alt="avatar" />
+				<img src="https://api.dicebear.com/7.x/avataaars/svg?seed=default" alt="avatar" />
 				<div>
-					<div class="prof-name" id="sidebarName">Lädt...</div>
-					<div class="prof-score">Kurse</div>
+					<div class="prof-name">Laden...</div>
+					<div class="prof-score">0 Punkte</div>
 				</div>
 			</div>
 		</div>
@@ -211,160 +122,154 @@
 	<main class="main">
 		<header class="main-header">
 			<div>
-				<h1 id="welcomeHeader">📚 Meine Kurse</h1>
-				<p class="muted">Entdecke spannende Kurse und erweitere dein Wissen</p>
+				<h1>📚 Kurse</h1>
+				<p class="muted">Entdecke spannende Programmierkurse!</p>
 			</div>
 		</header>
 
-		<!-- Stats Banner -->
-		<div class="stats-banner">
-			<div class="stat-box">
-				<div class="stat-number" id="totalCourses">0</div>
-				<div class="stat-label" style="font-weight: bold; color: #fff8ef">Verfügbare Kurse</div>
-			</div>
-			<div class="stat-box">
-				<div class="stat-number" id="enrolledCourses">0</div>
-				<div class="stat-label" style="font-weight: bold; color: #fff8ef">Meine Kurse</div>
-			</div>
-			<div class="stat-box">
-				<div class="stat-number" id="completedCourses">0</div>
-				<div class="stat-label" style="font-weight: bold; color: #fff8ef">Abgeschlossen</div>
+		<div class="tabs">
+			<button class="tab active" onclick="filterCourses('all')">Alle Kurse</button>
+			<button class="tab" onclick="filterCourses('enrolled')">Meine Kurse</button>
+			<button class="tab" onclick="filterCourses('available')">Verfügbare Kurse</button>
+		</div>
+
+		<div class="courses-grid" id="coursesContainer">
+			<div style="text-align: center; padding: 40px; color: var(--muted); grid-column: 1 / -1;">
+				<div style="font-size: 48px; margin-bottom: 12px;">📚</div>
+				<p>Lade Kurse...</p>
 			</div>
 		</div>
 
-		<!-- Filter -->
-		<div class="filter-section" id="filterSection"></div>
-
-		<!-- Courses Grid -->
-		<div class="courses-grid" id="coursesGrid"></div>
-
-		<div id="emptyState" class="empty-state" style="display: none;">
-			<h3>Keine Kurse gefunden</h3>
-			<p>Versuche einen anderen Filter</p>
-		</div>
+		<footer class="footer">
+			<div>© OctoCode – 2025</div>
+		</footer>
 	</main>
 </div>
 
 <script>
 let currentUser = null;
 let allCourses = [];
-let currentFilter = 'Alle';
+let enrolledCourseIds = [];
+let currentFilter = 'all';
 
-// Auth check
-async function checkAuth() {
+async function loadAuth() {
 	try {
+		console.log('🔐 Проверка авторизации...');
 		const res = await fetch('/api/check-auth', { credentials: 'include' });
 		const data = await res.json();
-		if (!data.authenticated) {
-			window.location.href = '/index.html';
-			return;
-		}
-		currentUser = data.user;
-		document.getElementById('sidebarName').textContent = currentUser.name;
-		if (currentUser.avatar_url) {
-			document.getElementById('sidebarAvatar').src = currentUser.avatar_url;
+
+		if (data.authenticated) {
+			currentUser = data.user;
+			document.querySelector('.prof-name').textContent = currentUser.name;
+			document.querySelector('.prof-score').textContent = `${currentUser.points || 0} Punkte`;
+
+			let avatarUrl = currentUser.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(currentUser.name)}`;
+			document.querySelectorAll('.profile img').forEach(img => img.src = avatarUrl);
+
+			await loadCourses();
+		} else {
+			window.location.href = '/';
 		}
 	} catch (err) {
-		console.error('Auth error:', err);
-		window.location.href = '/index.html';
+		console.error(err);
+		window.location.href = '/';
 	}
 }
 
-// Load courses
 async function loadCourses() {
 	try {
-		const res = await fetch('/api/courses', { credentials: 'include' });
-		allCourses = await res.json();
+		console.log('📚 Загрузка всех курсов...');
 
-		updateStats();
-		renderFilters();
-		renderCourses();
+		// Загружаем все курсы
+		const allRes = await fetch('/api/courses', { credentials: 'include' });
+		allCourses = await allRes.json();
+
+		// Загружаем курсы пользователя
+		const myRes = await fetch('/api/my-courses', { credentials: 'include' });
+		const myCourses = await myRes.json();
+		enrolledCourseIds = myCourses.map(c => c.id);
+
+		console.log('✅ Всего курсов:', allCourses.length);
+		console.log('✅ Записан на:', enrolledCourseIds.length);
+
+		displayCourses();
 	} catch (err) {
-		console.error('Error loading courses:', err);
+		console.error('❌ Ошибка загрузки курсов:', err);
+		const container = document.getElementById('coursesContainer');
+		container.innerHTML = `
+			<div style="text-align: center; padding: 40px; color: var(--muted); grid-column: 1 / -1;">
+				<div style="font-size: 48px; margin-bottom: 12px;">⚠️</div>
+				<p>Fehler beim Laden der Kurse</p>
+			</div>
+		`;
 	}
 }
 
-// Update stats
-function updateStats() {
-	document.getElementById('totalCourses').textContent = allCourses.length;
-	const enrolled = allCourses.filter(c => c.enrolled).length;
-	document.getElementById('enrolledCourses').textContent = enrolled;
-	const completed = allCourses.filter(c => c.enrolled && c.progress === 100).length;
-	document.getElementById('completedCourses').textContent = completed;
-}
-
-// Render filters
-function renderFilters() {
-	const categories = ['Alle', ...new Set(allCourses.map(c => c.category))];
-	const filterSection = document.getElementById('filterSection');
-	filterSection.innerHTML = categories.map(cat => `
-		<button class="filter-btn ${currentFilter === cat ? 'active' : ''}" onclick="setFilter('${cat}')">
-			${cat}
-		</button>
-	`).join('');
-}
-
-function setFilter(filter) {
+function filterCourses(filter) {
 	currentFilter = filter;
-	renderFilters();
-	renderCourses();
+
+	// Update tabs
+	document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+	event.target.classList.add('active');
+
+	displayCourses();
 }
 
-// Render courses
-function renderCourses() {
-	const grid = document.getElementById('coursesGrid');
-	const filtered = currentFilter === 'Alle'
-		? allCourses
-		: allCourses.filter(c => c.category === currentFilter);
+function displayCourses() {
+	const container = document.getElementById('coursesContainer');
 
-	if (filtered.length === 0) {
-		grid.style.display = 'none';
-		document.getElementById('emptyState').style.display = 'block';
+	let coursesToShow = allCourses;
+
+	if (currentFilter === 'enrolled') {
+		coursesToShow = allCourses.filter(c => enrolledCourseIds.includes(c.id));
+	} else if (currentFilter === 'available') {
+		coursesToShow = allCourses.filter(c => !enrolledCourseIds.includes(c.id));
+	}
+
+	if (coursesToShow.length === 0) {
+		let message = 'Keine Kurse gefunden';
+		if (currentFilter === 'enrolled') {
+			message = 'Du hast dich noch für keine Kurse angemeldet.';
+		} else if (currentFilter === 'available') {
+			message = 'Keine verfügbaren Kurse.';
+		}
+
+		container.innerHTML = `
+			<div style="text-align: center; padding: 40px; color: var(--muted); grid-column: 1 / -1;">
+				<div style="font-size: 48px; margin-bottom: 12px;">📚</div>
+				<p>${message}</p>
+			</div>
+		`;
 		return;
 	}
 
-	grid.style.display = 'grid';
-	document.getElementById('emptyState').style.display = 'none';
+	container.innerHTML = coursesToShow.map(course => {
+		const isEnrolled = enrolledCourseIds.includes(course.id);
+		const badgeClass = course.category === 'Development' ? 'blue' : 'yellow';
 
-	grid.innerHTML = filtered.map(course => `
-		<div class="course-card" onclick="openCourse(${course.id})">
-			<img class="course-image" src="${course.image_url}" alt="${course.title}">
-			<div class="course-body">
+		return `
+			<div class="course-card ${isEnrolled ? 'enrolled' : ''}">
 				<div class="course-header">
-					<span class="course-badge" style="background: ${course.color}">${course.difficulty}</span>
-					<div class="course-rating">⭐ ${course.rating}</div>
+					<div class="course-badge ${badgeClass}">${course.category || 'Coding'}</div>
+					${isEnrolled ?
+						'<button class="enroll-btn enrolled">✓ Eingeschrieben</button>' :
+						`<button class="enroll-btn primary" onclick="enrollCourse(${course.id})">+ Einschreiben</button>`
+					}
 				</div>
 				<h3 class="course-title">${course.title}</h3>
-				<p class="course-desc">${course.description}</p>
-
-				<div class="course-meta">
-					<div class="meta-item">⏱️ ${course.duration}</div>
-					<div class="meta-item">👥 ${course.total_students || 0}</div>
+				<p class="course-sub">${course.description || 'Ein interaktiver Programmierkurs'}</p>
+				<div class="course-meta" style="margin-top: 16px;">
+					<div class="course-stats">${course.total_lessons || 0} Lektionen • ${course.duration || '8h'} • ${course.rating || 4.7}★</div>
 				</div>
-
-				${course.enrolled ? `
-					<div class="progress-bar">
-						<div class="progress-fill" style="width: ${course.progress}%"></div>
-					</div>
-					<p style="text-align: center; font-size: 0.85rem; color: var(--muted); margin: 0.5rem 0;">
-						${course.progress}% abgeschlossen
-					</p>
-					<button class="btn-continue" onclick="event.stopPropagation(); openCourse(${course.id})">
-						Fortsetzen →
-					</button>
-				` : `
-					<button class="btn-enroll" onclick="event.stopPropagation(); enrollCourse(${course.id})">
-						Jetzt anmelden
-					</button>
-				`}
 			</div>
-		</div>
-	`).join('');
+		`;
+	}).join('');
 }
 
-// Enroll
 async function enrollCourse(courseId) {
 	try {
+		console.log('📝 Записываюсь на курс:', courseId);
+
 		const res = await fetch('/api/enroll', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
@@ -373,24 +278,59 @@ async function enrollCourse(courseId) {
 		});
 
 		const data = await res.json();
+
 		if (data.success) {
-			await loadCourses();
+			alert(data.message);
+			enrolledCourseIds.push(courseId);
+			displayCourses();
+			console.log('✅ Успешно записан на курс');
+		} else {
 			alert(data.message);
 		}
 	} catch (err) {
-		console.error('Error:', err);
-		alert('Fehler bei der Anmeldung');
+		console.error('❌ Ошибка записи:', err);
+		alert('Fehler beim Einschreiben');
 	}
 }
 
-// Open course
-function openCourse(courseId) {
-	window.location.href = `/kurs.html?id=${courseId}`;
+async function logout() {
+	if (!confirm('Möchten Sie sich wirklich abmelden?')) return;
+	try {
+		const res = await fetch('/api/logout', { method:'POST', credentials:'include' });
+		const data = await res.json();
+		alert(data.message);
+		window.location.href = '/';
+	} catch(err) {
+		console.error(err);
+		alert('Fehler beim Abmelden');
+	}
 }
 
-// Init
-checkAuth();
-loadCourses();
+document.addEventListener('DOMContentLoaded', () => {
+	console.log('🚀 Kurse Seite lädt...');
+	loadAuth();
+
+	// Logout button
+	const sidebar = document.querySelector('.sidebar-footer');
+	if (sidebar && !document.getElementById('logoutBtn')) {
+		const btn = document.createElement('button');
+		btn.id = 'logoutBtn';
+		btn.textContent = '🚪 Abmelden';
+		btn.style.cssText = 'width:100%;padding:12px;background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.3);border-radius:10px;font-weight:700;cursor:pointer;margin-top:12px;transition:all 0.2s;';
+		btn.addEventListener('mouseenter', () => {
+			btn.style.background = '#ef4444';
+			btn.style.color = '#fff';
+		});
+		btn.addEventListener('mouseleave', () => {
+			btn.style.background = 'rgba(239,68,68,0.1)';
+			btn.style.color = '#ef4444';
+		});
+		btn.addEventListener('click', logout);
+		sidebar.appendChild(btn);
+	}
+
+	console.log('✅ Kurse Seite bereit!');
+});
 </script>
 </body>
 </html>

@@ -986,6 +986,38 @@ def get_my_courses():
 	db.close()
 	return jsonify([dict(r) for r in rows])
 
+@app.route('/api/enroll', methods=['POST'])
+def enroll_course():
+    if 'user_id' not in session:
+        return jsonify({"success": False, "message": "Nicht authentifiziert"}), 401
+
+    data = request.get_json() or {}
+    course_id = data.get('course_id')
+
+    if not course_id:
+        return jsonify({"success": False, "message": "Kurs-ID fehlt"}), 400
+
+    db = get_db()
+
+    # prüfen ob user schon eingeschrieben ist
+    existing = db.execute(
+        "SELECT id FROM enrollments WHERE user_id = ? AND course_id = ?",
+        (session['user_id'], course_id)
+    ).fetchone()
+
+    if existing:
+        db.close()
+        return jsonify({"success": False, "message": "Bereits eingeschrieben"}), 400
+
+    # speichern
+    db.execute(
+        "INSERT INTO enrollments (user_id, course_id) VALUES (?, ?)",
+        (session['user_id'], course_id)
+    )
+    db.commit()
+    db.close()
+
+    return jsonify({"success": True, "message": "Erfolgreich eingeschrieben"}), 200
 
 if __name__ == '__main__':
 	init_db()

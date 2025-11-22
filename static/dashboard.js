@@ -1,4 +1,3 @@
-// ===== GLOBALE VARIABLEN =====
 let currentUser = null;
 
 // ===== HEUTIGE DATUM =====
@@ -22,6 +21,7 @@ function updateTodayDate() {
 // ===== BENUTZERDATEN LADEN =====
 async function loadUserData() {
 	try {
+		console.log('🔐 Check user data');
 		const res = await fetch('/api/check-auth', { credentials: 'include' });
 		const data = await res.json();
 
@@ -44,6 +44,11 @@ async function loadUserData() {
 			let avatarUrl = currentUser.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(currentUser.name)}`;
 			document.querySelectorAll('.profile img, .avatar img').forEach(img => img.src = avatarUrl);
 
+			console.log('✅ Пользователь загружен:', currentUser.name, 'Points:', currentUser.points);
+
+			// Load user's enrolled courses
+			await loadMyCourses();
+
 			// Load friends list
 			await loadFriends();
 
@@ -55,15 +60,75 @@ async function loadUserData() {
 			window.location.href = '/';
 		}
 	} catch (err) {
-		console.error('Fehler beim Laden der Daten:', err);
+		console.error('❌ Fehler beim Laden der Daten:', err);
 		alert('Verbindungsfehler zum Server');
 		window.location.href = '/';
+	}
+}
+
+// ===== MEINE KURSE LADEN =====
+async function loadMyCourses() {
+	try {
+		console.log('📚 Lade kurse: ');
+		const res = await fetch('/api/my-courses', { credentials: 'include' });
+
+		if (!res.ok) {
+			throw new Error(`HTTP ${res.status}`);
+		}
+
+		const courses = await res.json();
+		console.log('✅ Kursen geladen:', courses.length);
+
+		const container = document.getElementById('myCourses');
+
+		if (!courses || courses.length === 0) {
+			container.innerHTML = `
+				<div style="text-align: center; padding: 40px; color: var(--muted);">
+					<div style="font-size: 48px; margin-bottom: 12px;">📚</div>
+					<p>Du hast dich noch für keine Kurse angemeldet.</p>
+					<a href="kurse.html" style="display: inline-block; margin-top: 16px; padding: 10px 20px; background: var(--accent); color: white; border-radius: 8px; text-decoration: none; font-weight: 700;">Kurse durchsuchen</a>
+				</div>
+			`;
+			return;
+		}
+
+		const coursesToShow = courses.slice(0, 3);
+
+		container.innerHTML = coursesToShow.map(course => {
+			const badgeClass = course.category === 'Development' ? 'blue' : 'yellow';
+			const progress = Math.floor(Math.random() * 100);
+
+			return `
+				<article class="course">
+					<div class="course-badge ${badgeClass}">${course.category || 'Coding'}</div>
+					<h4 class="course-title">${course.title}</h4>
+					<p class="course-sub">${course.description || 'Ein interaktiver Kurs zum Programmieren lernen'}</p>
+					<div class="course-meta">
+						<div class="progress-line">
+							<div class="progress" style="width:${progress}%"></div>
+						</div>
+						<div class="course-stats">${course.total_lessons || 0} lessons • ${course.duration || '8h'} • ${course.rating || 4.7}★</div>
+					</div>
+				</article>
+			`;
+		}).join('');
+
+	} catch (err) {
+		console.error('❌ Fehler beim Laden der Kurse:', err);
+		const container = document.getElementById('myCourses');
+		container.innerHTML = `
+			<div style="text-align: center; padding: 40px; color: var(--muted);">
+				<div style="font-size: 48px; margin-bottom: 12px;">⚠️</div>
+				<p>Fehler beim Laden der Kurse</p>
+			</div>
+		`;
 	}
 }
 
 // ===== FREUNDE LADEN =====
 async function loadFriends() {
 	try {
+		console.log('👥 Загрузка друзей...');
 		const res = await fetch('/api/friends/list', { credentials: 'include' });
 		const friends = await res.json();
 
@@ -92,8 +157,10 @@ async function loadFriends() {
 			`;
 		}).join('');
 
+		console.log('✅ Friends', topFriends.length);
+
 	} catch (err) {
-		console.error('Fehler beim Laden der Freunde:', err);
+		console.error('❌ Fehler beim Laden der Freunde:', err);
 	}
 }
 
@@ -138,76 +205,6 @@ function showFriendRequestsNotification(requests) {
 	sidebar.insertBefore(notif, sidebar.firstChild);
 }
 
-// ===== FREUNDE SUCHEN =====
-async function searchFriends(query) {
-	if (!query || query.length < 2) return [];
-
-	try {
-		const res = await fetch(`/api/friends/search?q=${encodeURIComponent(query)}`, {
-			credentials: 'include'
-		});
-		const users = await res.json();
-		return users;
-	} catch (err) {
-		console.error('Fehler bei der Suche:', err);
-		return [];
-	}
-}
-
-// ===== FREUNDSCHAFTSANFRAGE SENDEN =====
-async function sendFriendRequest(friendId) {
-	try {
-		const res = await fetch('/api/friends/request', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			credentials: 'include',
-			body: JSON.stringify({ friend_id: friendId })
-		});
-
-		const data = await res.json();
-
-		if (data.success) {
-			alert(data.message);
-			return true;
-		} else {
-			alert(data.message);
-			return false;
-		}
-	} catch (err) {
-		console.error('Fehler beim Senden der Anfrage:', err);
-		alert('Fehler beim Senden der Freundschaftsanfrage');
-		return false;
-	}
-}
-
-// ===== FREUNDSCHAFTSANFRAGE AKZEPTIEREN =====
-async function acceptFriendRequest(friendId) {
-	try {
-		const res = await fetch('/api/friends/accept', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			credentials: 'include',
-			body: JSON.stringify({ friend_id: friendId })
-		});
-
-		const data = await res.json();
-
-		if (data.success) {
-			alert(data.message);
-			await loadFriends();
-			await loadFriendRequests();
-			return true;
-		} else {
-			alert(data.message);
-			return false;
-		}
-	} catch (err) {
-		console.error('Fehler beim Akzeptieren:', err);
-		alert('Fehler beim Akzeptieren der Anfrage');
-		return false;
-	}
-}
-
 // ===== ABMELDUNG =====
 async function logout() {
 	if (!confirm('Möchten Sie sich wirklich abmelden?')) return;
@@ -233,17 +230,18 @@ async function loadUserStats() {
 		const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
 		// Update stats display
-		const statsElements = {
-			'.stat-value.courses': totalTasks,
-			'.stat-value.completion': `${completionRate}<span class="muted">%</span>`
-		};
-
-		for (const [selector, value] of Object.entries(statsElements)) {
-			const el = document.querySelector(selector);
-			if (el) {
-				el.innerHTML = value;
-			}
+		const coursesEl = document.querySelector('.stat-value.courses');
+		if (coursesEl) {
+			coursesEl.textContent = totalTasks;
 		}
+
+		const completionEl = document.querySelector('.stat-value.completion');
+		if (completionEl) {
+			completionEl.innerHTML = `${completionRate}<span class="muted">%</span>`;
+		}
+
+		console.log('✅ Stats geladen: Tasks:', totalTasks, 'Completion:', completionRate + '%');
+
 	} catch (err) {
 		console.error('Fehler beim Laden der Stats:', err);
 	}
