@@ -171,6 +171,15 @@
 			font-family: 'Courier New', monospace;
 			font-size: 0.9rem;
 			resize: vertical;
+			background: #f9fafb;
+		}
+		.code-editor.error {
+			border-color: #ef4444;
+			background: #fef2f2;
+		}
+		.code-editor.success {
+			border-color: #22c55e;
+			background: #f0fdf4;
 		}
 		.btn-submit {
 			background: #667eea;
@@ -184,6 +193,10 @@
 		}
 		.btn-submit:hover {
 			background: #5568d3;
+		}
+		.btn-submit:disabled {
+			background: #9ca3af;
+			cursor: not-allowed;
 		}
 		.examples, .hints, .tests {
 			margin: 1.5rem 0;
@@ -206,11 +219,58 @@
 			margin-bottom: 1rem;
 			opacity: 0.5;
 		}
+		.validation-result {
+			margin-top: 1rem;
+			padding: 1rem;
+			border-radius: 8px;
+			display: none;
+		}
+		.validation-result.show {
+			display: block;
+		}
+		.validation-result.success {
+			background: #f0fdf4;
+			border: 2px solid #22c55e;
+			color: #166534;
+		}
+		.validation-result.error {
+			background: #fef2f2;
+			border: 2px solid #ef4444;
+			color: #991b1b;
+		}
+		.validation-result h4 {
+			margin: 0 0 0.5rem 0;
+			font-size: 1.1rem;
+		}
+		.error-list {
+			margin: 0.5rem 0;
+			padding-left: 1.5rem;
+		}
+		.error-item {
+			margin: 0.5rem 0;
+			padding: 0.5rem;
+			background: rgba(239, 68, 68, 0.1);
+			border-radius: 4px;
+		}
+		.success-message {
+			font-weight: 600;
+			margin: 0.5rem 0;
+		}
+		.ai-feedback {
+			margin-top: 1rem;
+			padding: 1rem;
+			background: #eff6ff;
+			border-left: 4px solid #3b82f6;
+			border-radius: 8px;
+		}
+		.ai-feedback h5 {
+			margin: 0 0 0.5rem 0;
+			color: #1e40af;
+		}
 	</style>
 </head>
 <body>
 <div class="app">
-	<!-- SIDEBAR -->
 	<aside class="sidebar" aria-label="Navbar">
 		<div class="brand">
 			<div class="logo">OC</div>
@@ -249,7 +309,6 @@
 		</div>
 	</aside>
 
-	<!-- MAIN -->
 	<main class="main">
 		<header class="main-header">
 			<div>
@@ -258,7 +317,6 @@
 			</div>
 		</header>
 
-		<!-- AI Generator -->
 		<section class="ai-generator">
 			<h2>✨ Neue Aufgabe generieren</h2>
 			<p style="opacity: 0.9;">Wähle ein Thema, Schwierigkeitsgrad und Sprache - unsere AI erstellt eine einzigartige Aufgabe nur für dich!</p>
@@ -297,7 +355,6 @@
 			</form>
 		</section>
 
-		<!-- Tasks List -->
 		<section class="card">
 			<div class="card-header">
 				<h3>Meine AI-Aufgaben</h3>
@@ -322,7 +379,6 @@
 	</main>
 </div>
 
-<!-- Task Detail Modal -->
 <div id="taskModal" class="modal">
 	<div class="modal-content">
 		<div class="modal-header">
@@ -343,7 +399,12 @@
 			<h3>Deine Lösung:</h3>
 			<textarea id="codeEditor" class="code-editor" placeholder="Schreibe deinen Code hier..."></textarea>
 
-			<button class="btn-submit" onclick="submitSolution()">Lösung einreichen</button>
+			<div id="validationResult" class="validation-result">
+				<h4 id="validationTitle"></h4>
+				<div id="validationContent"></div>
+			</div>
+
+			<button class="btn-submit" id="submitBtn" onclick="submitSolution()">Lösung einreichen</button>
 		</div>
 	</div>
 </div>
@@ -352,7 +413,6 @@
 let currentTask = null;
 let allTasks = [];
 
-// Check auth
 async function checkAuth() {
 	try {
 		const res = await fetch('/api/check-auth', { credentials: 'include' });
@@ -370,7 +430,6 @@ async function checkAuth() {
 	}
 }
 
-// Load tasks
 async function loadTasks() {
 	try {
 		const res = await fetch('/api/ai/my-tasks', { credentials: 'include' });
@@ -391,7 +450,6 @@ async function loadTasks() {
 	}
 }
 
-// Render tasks
 function renderTasks() {
 	const grid = document.getElementById('tasksGrid');
 	grid.innerHTML = allTasks.map(task => `
@@ -411,7 +469,6 @@ function renderTasks() {
 	`).join('');
 }
 
-// Generate task
 document.getElementById('generateForm').addEventListener('submit', async (e) => {
 	e.preventDefault();
 
@@ -453,7 +510,6 @@ document.getElementById('generateForm').addEventListener('submit', async (e) => 
 	}
 });
 
-// Open task modal
 async function openTask(taskId) {
 	try {
 		const res = await fetch(`/api/ai/task/${taskId}`, { credentials: 'include' });
@@ -470,7 +526,6 @@ async function openTask(taskId) {
 		document.getElementById('modalMeta').textContent = `${currentTask.topic} • ${currentTask.difficulty} • ${currentTask.language}`;
 		document.getElementById('modalDescription').textContent = currentTask.description;
 
-		// Examples
 		const examplesHtml = currentTask.examples.map(ex => `
 			<div class="example-item">
 				<strong>Eingabe:</strong> ${ex.input}<br>
@@ -480,13 +535,11 @@ async function openTask(taskId) {
 		`).join('');
 		document.getElementById('modalExamples').innerHTML = '<h3>Beispiele:</h3>' + examplesHtml;
 
-		// Hints
 		const hintsHtml = currentTask.hints.map((hint, i) => `
 			<div class="hint-item">💡 <strong>Tipp ${i+1}:</strong> ${hint}</div>
 		`).join('');
 		document.getElementById('modalHints').innerHTML = '<h3>Tipps:</h3>' + hintsHtml;
 
-		// Tests
 		const testsHtml = currentTask.test_cases.map((test, i) => `
 			<div class="test-item">
 				<strong>Test ${i+1}:</strong><br>
@@ -497,6 +550,8 @@ async function openTask(taskId) {
 		document.getElementById('modalTests').innerHTML = '<h3>Testfälle:</h3>' + testsHtml;
 
 		document.getElementById('codeEditor').value = '';
+		document.getElementById('codeEditor').className = 'code-editor';
+		document.getElementById('validationResult').classList.remove('show', 'success', 'error');
 		document.getElementById('taskModal').classList.add('active');
 	} catch (err) {
 		console.error('Error:', err);
@@ -508,49 +563,98 @@ function closeModal() {
 	currentTask = null;
 }
 
-// Submit solution
 async function submitSolution() {
 	const code = document.getElementById('codeEditor').value.trim();
+	const submitBtn = document.getElementById('submitBtn');
+	const codeEditor = document.getElementById('codeEditor');
+	const validationResult = document.getElementById('validationResult');
 
 	if (!code) {
 		alert('Bitte schreibe erst deinen Code!');
 		return;
 	}
 
+	submitBtn.disabled = true;
+	submitBtn.textContent = '🔍 Prüfe Code...';
+
+	validationResult.classList.remove('show', 'success', 'error');
+	codeEditor.className = 'code-editor';
+
 	try {
-		const res = await fetch('/api/ai/submit', {
+		const res = await fetch('/api/ai/validate-solution', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			credentials: 'include',
 			body: JSON.stringify({
 				task_id: currentTask.task_id,
-				code: code
+				code: code,
+				task_description: currentTask.description,
+				test_cases: currentTask.test_cases,
+				language: currentTask.language
 			})
 		});
 
 		const data = await res.json();
 
 		if (data.success) {
-			alert('✅ Lösung erfolgreich eingereicht!');
-			closeModal();
-			await loadTasks();
+			if (data.validation.is_correct) {
+				codeEditor.classList.add('success');
+				validationResult.classList.add('show', 'success');
+				document.getElementById('validationTitle').textContent = '✅ Perfekt! Deine Lösung ist korrekt!';
+
+				let content = `<p class="success-message">Alle Tests bestanden! (+${data.validation.points_earned} Punkte)</p>`;
+
+				if (data.validation.feedback) {
+					content += `<div class="ai-feedback">
+						<h5>💡 AI-Feedback:</h5>
+						<p>${data.validation.feedback}</p>
+					</div>`;
+				}
+
+				document.getElementById('validationContent').innerHTML = content;
+
+				setTimeout(() => {
+					closeModal();
+					loadTasks();
+				}, 3000);
+			} else {
+				codeEditor.classList.add('error');
+				validationResult.classList.add('show', 'error');
+				document.getElementById('validationTitle').textContent = '❌ Fehler gefunden';
+
+				let content = '<ul class="error-list">';
+				data.validation.errors.forEach(error => {
+					content += `<li class="error-item">${error}</li>`;
+				});
+				content += '</ul>';
+
+				if (data.validation.suggestions) {
+					content += `<div class="ai-feedback">
+						<h5>💡 Verbesserungsvorschläge:</h5>
+						<p>${data.validation.suggestions}</p>
+					</div>`;
+				}
+
+				document.getElementById('validationContent').innerHTML = content;
+			}
 		} else {
 			alert('❌ ' + data.message);
 		}
 	} catch (err) {
 		console.error('Error:', err);
-		alert('Fehler beim Einreichen');
+		alert('Fehler beim Überprüfen der Lösung');
+	} finally {
+		submitBtn.disabled = false;
+		submitBtn.textContent = 'Lösung einreichen';
 	}
 }
 
-// Close modal on outside click
 document.getElementById('taskModal').addEventListener('click', (e) => {
 	if (e.target.id === 'taskModal') {
 		closeModal();
 	}
 });
 
-// Init
 checkAuth();
 loadTasks();
 </script>

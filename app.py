@@ -753,8 +753,8 @@ def ai_get_task(task_id):
 		return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@app.route('/api/ai/submit', methods=['POST'])
-def ai_submit_solution():
+@app.route('/api/ai/validate-solution', methods=['POST'])
+def ai_validate_solution():
 	if 'user_id' not in session:
 		return jsonify({'success': False, 'message': 'Nicht authentifiziert'}), 401
 
@@ -762,6 +762,9 @@ def ai_submit_solution():
 		data = request.get_json() or {}
 		task_id = data.get('task_id')
 		code = data.get('code', '')
+		task_description = data.get('task_description', '')
+		test_cases = data.get('test_cases', [])
+		language = data.get('language', 'Python')
 
 		if not task_id or not code:
 			return jsonify({'success': False, 'message': 'Ungültige Daten'}), 400
@@ -778,48 +781,158 @@ def ai_submit_solution():
 			db.close()
 			return jsonify({'success': False, 'message': 'Bereits abgeschlossen'}), 400
 
-		task_dict = safe_dict(task)
-		points_earned = task_dict['points_reward']
+		prompt = f"""Du bist ein erfahrener Programmierlehrer und Code-Reviewer. Analysiere die folgende Lösung.
 
-		# Speichere Lösung
-		db.execute('INSERT INTO ai_submissions (task_id, user_id, code, points_earned) VALUES (?, ?, ?, ?)',
-				   (task_id, session['user_id'], code, points_earned))
+Aufgabe: {task_description}
+Programmiersprache: {language}
 
-		# Markiere als abgeschlossen
-		db.execute(
-			'UPDATE ai_tasks SET completed = 1, completed_at = CURRENT_TIMESTAMP WHERE task_id = ? AND user_id = ?',
-			(task_id, session['user_id']))
+Testfälle:
+{json.dumps(test_cases, ensure_ascii=False, indent=2)}
 
-		# Füge Punkte hinzu
-		db.execute('UPDATE users SET points = points + ? WHERE id = ?',
-				   (points_earned, session['user_id']))
+Schüler-Code:
+```{language.lower()}
+{code}
+```
 
-		# History
-		db.execute('INSERT INTO points_history (user_id, points, reason, task_id) VALUES (?, ?, ?, ?)',
-				   (session['user_id'], points_earned, f'Task: {task_dict["title"]}', task_id))
+Überprüfe den Code auf:
+1. Korrektheit - Erfüllt er die Aufgabe?
+2. Syntax-Fehler
+3. Logische Fehler
+4. Best Practices
 
-		db.commit()
+Antworte NUR mit JSON in diesem Format:
+{{
+  "is_correct": true/false,
+  "errors": ["Fehler 1", "Fehler 2"],
+  "suggestions": "Verbesserungsvorschläge hier",
+  "feedback": "Positives Feedback oder Lob"
+}}
 
-		new_user = db.execute('SELECT points FROM users WHERE id = ?', (session['user_id'],)).fetchone()
-		db.close()
+Wenn der Code korrekt ist, setze "is_correct": true und "errors": [].
+Wenn Fehler vorhanden sind, liste sie klar auf."""
 
-		total_points = safe_dict(new_user)['points'] if new_user else points_earned
+		try:
+			completion = groq_client.chat.completions.create(
+				model="llama-3.3-70b-versatile",
+				messages=[
+					{"role": "system",
+					 "content": "Du bist ein hilfreicher Code-Reviewer. Antworte NUR mit gültigem JSON."},
+					{"role": "user", "content": prompt}
+				],
+				temperature=0.3,
+				max_tokens=2000
+			)
 
-		print(f"✅ Task abgeschlossen: {task_dict['title']} (+{points_earned} points)")
+			response_text = completion.choices[0].message.content.strip()
+			response_text = response_text.replace("```json", "").replace("```", "").strip()
 
-		return jsonify({
-			'success': True,
-			'message': f'Glückwunsch! +{points_earned} Punkte!',
-			'points_earned': points_earned,
-			'total_points': total_points
-		}), 200
+			validation_result = json.loads(response_text)
+
+			if validation_result.get('is_correct', False):
+				task_dict = safe_dict(task)
+				points_earned = task_dict['points_reward']
+
+				db.execute('INSERT INTO ai_submissions (task_id, user_id, code, points_earned) VALUES (?, ?, ?, ?)',
+						   (task_id, session['user_id'], code, points_earned))
+
+				db.execute(
+					'UPDATE ai_tasks SET completed = 1, completed_at = CURRENT_TIMESTAMP WHERE task_id = ? AND user_id = ?',
+					(task_id, session['user_id']))
+
+				db.execute('UPDATE users SET points = points + ? WHERE id = ?',
+						   (points_earned, session['user_id']))
+
+				db.execute('INSERT INTO points_history (user_id, points, reason, task_id) VALUES (?, ?, ?, ?)',
+						   (session['user_id'], points_earned, f'AI Task: {task_dict["title"]}', task_id))
+
+				db.commit()
+
+				validation_result['points_earned'] = points_earned
+				print(f"Task completed: {task_dict['title']} (+{points_earned} points)")
+
+			db.close()
+
+			return jsonify({
+				'success': True,
+				'validation': validation_result
+			}), 200
+
+		except json.JSONDecodeError as e:
+			print(f"JSON parse error: {e}")
+			print(f"Response text: {response_text}")
+			return jsonify({
+				'success': False,
+				'message': 'AI-Antwort konnte nicht verarbeitet werden'
+			}), 500
 
 	except Exception as e:
-		print(f"❌ Submit error: {e}")
+		print(f"Validation error: {e}")
 		import traceback
 		traceback.print_exc()
 		return jsonify({'success': False, 'message': str(e)}), 500
 
+
+@app.route('/api/ai/submit', methods=['POST'])
+def ai_submit_solution():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Nicht authentifiziert'}), 401
+
+    try:
+        data = request.get_json() or {}
+        task_id = data.get('task_id')
+        code = data.get('code', '')
+
+        if not task_id or not code:
+            return jsonify({'success': False, 'message': 'Ungültige Daten'}), 400
+
+        db = get_db()
+        task = db.execute('SELECT * FROM ai_tasks WHERE task_id = ? AND user_id = ?',
+                          (task_id, session['user_id'])).fetchone()
+
+        if not task:
+            db.close()
+            return jsonify({'success': False, 'message': 'Aufgabe nicht gefunden'}), 404
+
+        if task['completed']:
+            db.close()
+            return jsonify({'success': False, 'message': 'Bereits abgeschlossen'}), 400
+
+        task_dict = safe_dict(task)
+        points_earned = task_dict['points_reward']
+
+        db.execute('INSERT INTO ai_submissions (task_id, user_id, code, points_earned) VALUES (?, ?, ?, ?)',
+                   (task_id, session['user_id'], code, points_earned))
+
+        db.execute('UPDATE ai_tasks SET completed = 1, completed_at = CURRENT_TIMESTAMP WHERE task_id = ? AND user_id = ?',
+                   (task_id, session['user_id']))
+
+        db.execute('UPDATE users SET points = points + ? WHERE id = ?',
+                   (points_earned, session['user_id']))
+
+        db.execute('INSERT INTO points_history (user_id, points, reason, task_id) VALUES (?, ?, ?, ?)',
+                   (session['user_id'], points_earned, f'Task: {task_dict["title"]}', task_id))
+
+        db.commit()
+
+        new_user = db.execute('SELECT points FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+        db.close()
+
+        total_points = safe_dict(new_user)['points'] if new_user else points_earned
+
+        print(f"Task abgeschlossen: {task_dict['title']} (+{points_earned} points)")
+
+        return jsonify({
+            'success': True,
+            'message': f'Glückwunsch! +{points_earned} Punkte!',
+            'points_earned': points_earned,
+            'total_points': total_points
+        }), 200
+
+    except Exception as e:
+        print(f"Submit error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 # ============ FRIENDS SYSTEM ============
 
