@@ -46,7 +46,6 @@ def safe_dict(row):
 	if row is None:
 		return None
 	d = dict(row)
-	# Убедимся что points всегда число
 	if 'points' in d:
 		d['points'] = d['points'] if d['points'] is not None else 0
 	if 'points_reward' in d:
@@ -180,7 +179,11 @@ def init_db():
 					   rating
 					   REAL
 					   DEFAULT
-					   0
+					   0,
+					   status
+					   TEXT
+					   DEFAULT
+					   'active'
 				   )
 				   ''')
 
@@ -425,6 +428,41 @@ def init_db():
 					   )
 				   ''')
 
+	# Создаем тестовых пользователей если их нет
+	cursor.execute('SELECT COUNT(*) as count FROM users WHERE role = "teacher"')
+	teacher_count = cursor.fetchone()['count']
+
+	if teacher_count == 0:
+		print("📝 Создаем тестового учителя...")
+		hashed = hash_password('teacher123')
+		cursor.execute('INSERT INTO users (name, email, password, role, points) VALUES (?, ?, ?, ?, ?)',
+					   ('Herr Schmidt', 'teacher@octocode.de', hashed, 'teacher', 0))
+		teacher_id = cursor.lastrowid
+		cursor.execute('INSERT INTO profiles (user_id) VALUES (?)', (teacher_id,))
+		print("✅ Тестовый учитель создан: teacher@octocode.de / teacher123")
+
+	# Создаем тестовые курсы если их нет
+	cursor.execute('SELECT COUNT(*) as count FROM courses')
+	course_count = cursor.fetchone()['count']
+
+	if course_count == 0:
+		print("📚 Создаем тестовые курсы...")
+		test_courses = [
+			('Python Grundlagen', 'Lerne die Basics von Python', 'Programmierung', '#3b82f6', 12, '8 Wochen', 4.5,
+			 'active'),
+			('JavaScript für Anfänger', 'Webentwicklung mit JS', 'Web Development', '#f59e0b', 10, '6 Wochen', 4.3,
+			 'active'),
+			('HTML & CSS Basics', 'Erstelle deine erste Website', 'Web Design', '#10b981', 8, '4 Wochen', 4.7,
+			 'active'),
+		]
+		for course in test_courses:
+			cursor.execute('''
+						   INSERT INTO courses (title, description, category, color, total_lessons, duration, rating,
+												status)
+						   VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+						   ''', course)
+		print(f"✅ {len(test_courses)} Kurse erstellt")
+
 	db.commit()
 	db.close()
 	print("✅ База данных инициализирована")
@@ -485,8 +523,6 @@ NUR JSON, ohne Code-Blöcke!"""
 			)
 
 			text = completion.choices[0].message.content.strip()
-
-			# Entferne Code-Blöcke
 			text = text.replace("```json", "").replace("```", "").strip()
 
 			task_data = json.loads(text)
@@ -600,6 +636,43 @@ def login():
 		return jsonify({'success': False, 'message': f'Fehler: {str(e)}'}), 500
 
 
+@app.route('/api/teacher-login', methods=['POST'])
+def teacher_login():
+	try:
+		data = request.get_json() or {}
+		email = (data.get('email') or '').strip().lower()
+		password = (data.get('password') or '').strip()
+
+		if not email or not password:
+			return jsonify({'success': False, 'message': 'E-Mail und Passwort erforderlich!'}), 400
+
+		db = get_db()
+		user = db.execute('SELECT * FROM users WHERE email = ? AND role = ?', (email, 'teacher')).fetchone()
+		db.close()
+
+		if not user or not verify_password(password, user['password']):
+			return jsonify({'success': False, 'message': 'Falsche E-Mail oder Passwort!'}), 401
+
+		session['user_id'] = user['id']
+		session['user_name'] = user['name']
+		session['user_email'] = user['email']
+		session['user_role'] = 'teacher'
+
+		print(f"✅ Lehrer Login: {user['name']}")
+
+		return jsonify({
+			'success': True,
+			'message': f'Willkommen, {user["name"]}!',
+			'redirect': '/teacher-dashboard.html'
+		}), 200
+
+	except Exception as e:
+		print(f"❌ Teacher login error: {e}")
+		import traceback
+		traceback.print_exc()
+		return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @app.route('/api/logout', methods=['POST'])
 def logout():
 	session.clear()
@@ -625,7 +698,7 @@ def check_auth():
 		user_dict = safe_dict(user)
 
 		avatar_url = profile['avatar_url'] if profile and profile['avatar_url'] else \
-			f"https://api.dicebear.com/7.x/avataaars/svg?seed={secrets.token_hex(8)}"
+			f"https://api.dicebear.com/7.x/avataaars/svg?seed={user_dict['name']}"
 
 		return jsonify({
 			'authenticated': True,
@@ -643,6 +716,167 @@ def check_auth():
 		print(f"❌ Auth check error: {e}")
 		return jsonify({'authenticated': False}), 200
 
+
+# ============ TEACHER API ENDPOINTS ============
+@app.route('/api/teacher/students', methods=['GET'])
+def get_teacher_students():
+	"""Получить всех студентов для учителя"""
+	if 'user_id' not in session or session.get('user_role') != 'teacher':
+		return jsonify({'success': False, 'message': 'Не авторизован'}), 401
+
+	try:
+		db = get_db()
+
+		students = db.execute('''
+							  SELECT u.id,
+									 u.name,
+									 u.email,
+									 u.points,
+									 u.created_at,
+									 p.avatar_url,
+									 p.experience_level,
+									 COUNT(DISTINCT e.course_id)                               as coursesCompleted,
+									 COUNT(DISTINCT at.id)                                     as totalTasks,
+									 COUNT(DISTINCT CASE WHEN at.completed = 1 THEN at.id END) as completedTasks
+							  FROM users u
+									   LEFT JOIN profiles p ON u.id = p.user_id
+									   LEFT JOIN enrollments e ON u.id = e.user_id
+									   LEFT JOIN ai_tasks at
+							  ON u.id = at.user_id
+							  WHERE u.role = 'student'
+							  GROUP BY u.id
+							  ORDER BY u.points DESC
+							  ''').fetchall()
+
+		db.close()
+
+		students_list = []
+		for student in students:
+			student_dict = safe_dict(student)
+			# Вычисляем прогресс
+			total_tasks = student_dict.get('totalTasks', 0)
+			completed_tasks = student_dict.get('completedTasks', 0)
+			progress = round((completed_tasks / total_tasks * 100)) if total_tasks > 0 else 0
+
+			student_dict['progress'] = progress
+			student_dict['activeCourses'] = student_dict.get('coursesCompleted', 0)
+
+			if not student_dict.get('avatar_url'):
+				student_dict['avatar_url'] = f"https://api.dicebear.com/7.x/avataaars/svg?seed={student_dict['name']}"
+
+			students_list.append(student_dict)
+
+		print(f"✅ Загружено {len(students_list)} студентов для учителя")
+		return jsonify(students_list), 200
+
+	except Exception as e:
+		print(f"❌ Get students error: {e}")
+		import traceback
+		traceback.print_exc()
+		return jsonify([]), 500
+
+
+@app.route('/api/teacher/tasks', methods=['GET'])
+def get_teacher_tasks():
+	"""Получить все задачи для учителя"""
+	if 'user_id' not in session or session.get('user_role') != 'teacher':
+		return jsonify({'success': False, 'message': 'Не авторизован'}), 401
+
+	try:
+		db = get_db()
+
+		tasks = db.execute('''
+						   SELECT at.id,
+								  at.task_id,
+								  at.title,
+								  at.description,
+								  at.topic,
+								  at.difficulty,
+								  at.language,
+								  at.estimated_time,
+								  at.points_reward,
+								  at.created_at,
+								  COUNT(DISTINCT ats.user_id)                                    as submissions,
+								  COUNT(DISTINCT CASE WHEN at.completed = 1 THEN at.user_id END) as completed
+						   FROM ai_tasks at
+			LEFT JOIN ai_submissions ats
+						   ON at.task_id = ats.task_id
+						   GROUP BY at.task_id
+						   ORDER BY at.created_at DESC
+						   ''').fetchall()
+
+		db.close()
+
+		tasks_list = [safe_dict(task) for task in tasks]
+
+		print(f"✅ Загружено {len(tasks_list)} задач для учителя")
+		return jsonify(tasks_list), 200
+
+	except Exception as e:
+		print(f"❌ Get teacher tasks error: {e}")
+		import traceback
+		traceback.print_exc()
+		return jsonify([]), 500
+
+
+@app.route('/api/teacher/stats', methods=['GET'])
+def get_teacher_stats():
+	"""Получить статистику для учителя"""
+	if 'user_id' not in session or session.get('user_role') != 'teacher':
+		return jsonify({'success': False, 'message': 'Не авторизован'}), 401
+
+	try:
+		db = get_db()
+
+		# Количество студентов
+		students_count = db.execute('SELECT COUNT(*) as count FROM users WHERE role = "student"').fetchone()['count']
+
+		# Количество курсов
+		courses_count = db.execute('SELECT COUNT(*) as count FROM courses').fetchone()['count']
+
+		# Количество задач
+		tasks_count = db.execute('SELECT COUNT(*) as count FROM ai_tasks').fetchone()['count']
+
+		# Средний прогресс
+		avg_progress = db.execute('''
+								  SELECT AVG(
+											 CASE
+												 WHEN total_tasks > 0 THEN (completed_tasks * 100.0 / total_tasks)
+												 ELSE 0
+												 END
+										 ) as avg_progress
+								  FROM (SELECT u.id,
+											   COUNT(DISTINCT at.id)                                     as total_tasks,
+											   COUNT(DISTINCT CASE WHEN at.completed = 1 THEN at.id END) as completed_tasks
+										FROM users u
+												 LEFT JOIN ai_tasks at
+										ON u.id = at.user_id
+										WHERE u.role = 'student'
+										GROUP BY u.id)
+								  ''').fetchone()
+
+		db.close()
+
+		stats = {
+			'totalStudents': students_count,
+			'totalCourses': courses_count,
+			'totalTasks': tasks_count,
+			'avgProgress': round(avg_progress['avg_progress'] or 0)
+		}
+
+		print(f"✅ Статистика загружена: {stats}")
+		return jsonify(stats), 200
+
+	except Exception as e:
+		print(f"❌ Get stats error: {e}")
+		import traceback
+		traceback.print_exc()
+		return jsonify({
+			'totalStudents': 0,
+			'totalCourses': 0,
+			'totalTasks': 0,
+			'avgProgress': 0
+		}), 500
 
 # ============ AI TASKS ============
 
@@ -848,7 +1082,7 @@ Wenn Fehler vorhanden sind, liste sie klar auf."""
 				db.commit()
 
 				validation_result['points_earned'] = points_earned
-				print(f"Task completed: {task_dict['title']} (+{points_earned} points)")
+				print(f"✅ Task completed: {task_dict['title']} (+{points_earned} points)")
 
 			db.close()
 
@@ -858,7 +1092,7 @@ Wenn Fehler vorhanden sind, liste sie klar auf."""
 			}), 200
 
 		except json.JSONDecodeError as e:
-			print(f"JSON parse error: {e}")
+			print(f"❌ JSON parse error: {e}")
 			print(f"Response text: {response_text}")
 			return jsonify({
 				'success': False,
@@ -866,7 +1100,7 @@ Wenn Fehler vorhanden sind, liste sie klar auf."""
 			}), 500
 
 	except Exception as e:
-		print(f"Validation error: {e}")
+		print(f"❌ Validation error: {e}")
 		import traceback
 		traceback.print_exc()
 		return jsonify({'success': False, 'message': str(e)}), 500
@@ -874,65 +1108,67 @@ Wenn Fehler vorhanden sind, liste sie klar auf."""
 
 @app.route('/api/ai/submit', methods=['POST'])
 def ai_submit_solution():
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'message': 'Nicht authentifiziert'}), 401
+	if 'user_id' not in session:
+		return jsonify({'success': False, 'message': 'Nicht authentifiziert'}), 401
 
-    try:
-        data = request.get_json() or {}
-        task_id = data.get('task_id')
-        code = data.get('code', '')
+	try:
+		data = request.get_json() or {}
+		task_id = data.get('task_id')
+		code = data.get('code', '')
 
-        if not task_id or not code:
-            return jsonify({'success': False, 'message': 'Ungültige Daten'}), 400
+		if not task_id or not code:
+			return jsonify({'success': False, 'message': 'Ungültige Daten'}), 400
 
-        db = get_db()
-        task = db.execute('SELECT * FROM ai_tasks WHERE task_id = ? AND user_id = ?',
-                          (task_id, session['user_id'])).fetchone()
+		db = get_db()
+		task = db.execute('SELECT * FROM ai_tasks WHERE task_id = ? AND user_id = ?',
+						  (task_id, session['user_id'])).fetchone()
 
-        if not task:
-            db.close()
-            return jsonify({'success': False, 'message': 'Aufgabe nicht gefunden'}), 404
+		if not task:
+			db.close()
+			return jsonify({'success': False, 'message': 'Aufgabe nicht gefunden'}), 404
 
-        if task['completed']:
-            db.close()
-            return jsonify({'success': False, 'message': 'Bereits abgeschlossen'}), 400
+		if task['completed']:
+			db.close()
+			return jsonify({'success': False, 'message': 'Bereits abgeschlossen'}), 400
 
-        task_dict = safe_dict(task)
-        points_earned = task_dict['points_reward']
+		task_dict = safe_dict(task)
+		points_earned = task_dict['points_reward']
 
-        db.execute('INSERT INTO ai_submissions (task_id, user_id, code, points_earned) VALUES (?, ?, ?, ?)',
-                   (task_id, session['user_id'], code, points_earned))
+		db.execute('INSERT INTO ai_submissions (task_id, user_id, code, points_earned) VALUES (?, ?, ?, ?)',
+				   (task_id, session['user_id'], code, points_earned))
 
-        db.execute('UPDATE ai_tasks SET completed = 1, completed_at = CURRENT_TIMESTAMP WHERE task_id = ? AND user_id = ?',
-                   (task_id, session['user_id']))
+		db.execute(
+			'UPDATE ai_tasks SET completed = 1, completed_at = CURRENT_TIMESTAMP WHERE task_id = ? AND user_id = ?',
+			(task_id, session['user_id']))
 
-        db.execute('UPDATE users SET points = points + ? WHERE id = ?',
-                   (points_earned, session['user_id']))
+		db.execute('UPDATE users SET points = points + ? WHERE id = ?',
+				   (points_earned, session['user_id']))
 
-        db.execute('INSERT INTO points_history (user_id, points, reason, task_id) VALUES (?, ?, ?, ?)',
-                   (session['user_id'], points_earned, f'Task: {task_dict["title"]}', task_id))
+		db.execute('INSERT INTO points_history (user_id, points, reason, task_id) VALUES (?, ?, ?, ?)',
+				   (session['user_id'], points_earned, f'Task: {task_dict["title"]}', task_id))
 
-        db.commit()
+		db.commit()
 
-        new_user = db.execute('SELECT points FROM users WHERE id = ?', (session['user_id'],)).fetchone()
-        db.close()
+		new_user = db.execute('SELECT points FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+		db.close()
 
-        total_points = safe_dict(new_user)['points'] if new_user else points_earned
+		total_points = safe_dict(new_user)['points'] if new_user else points_earned
 
-        print(f"Task abgeschlossen: {task_dict['title']} (+{points_earned} points)")
+		print(f"✅ Task abgeschlossen: {task_dict['title']} (+{points_earned} points)")
 
-        return jsonify({
-            'success': True,
-            'message': f'Glückwunsch! +{points_earned} Punkte!',
-            'points_earned': points_earned,
-            'total_points': total_points
-        }), 200
+		return jsonify({
+			'success': True,
+			'message': f'Glückwunsch! +{points_earned} Punkte!',
+			'points_earned': points_earned,
+			'total_points': total_points
+		}), 200
 
-    except Exception as e:
-        print(f"Submit error: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
+	except Exception as e:
+		print(f"❌ Submit error: {e}")
+		import traceback
+		traceback.print_exc()
+		return jsonify({'success': False, 'message': str(e)}), 500
+
 
 # ============ FRIENDS SYSTEM ============
 
@@ -953,8 +1189,8 @@ def search_users():
 									LEFT JOIN profiles p ON u.id = p.user_id
 						   WHERE u.role = 'student'
 							 AND u.id != ?
-			AND (u.name LIKE ? OR u.email LIKE ?)
-			LIMIT 10
+							 AND (u.name LIKE ? OR u.email LIKE ?)
+						   LIMIT 10
 						   ''', (session['user_id'], f'%{query}%', f'%{query}%')).fetchall()
 		db.close()
 
@@ -1029,23 +1265,22 @@ def get_friends():
 	try:
 		db = get_db()
 		friends = db.execute('''
-							 SELECT u.id, u.name, u.points, p.avatar_url
-							 FROM users u
-									  LEFT JOIN profiles p ON u.id = p.user_id
-							 WHERE u.id IN (SELECT friend_id
-											FROM friendships
-											WHERE user_id = ?
-											  AND status = "accepted"
-											UNION
-											SELECT user_id
-											FROM friendships
-											WHERE friend_id = ?
-											  AND status = "accepted")
-							 ORDER BY u.points DESC
-							 ''', (session['user_id'], session['user_id'])).fetchall()
+			SELECT u.id, u.name, u.points, p.avatar_url
+			FROM users u
+			LEFT JOIN profiles p ON u.id = p.user_id
+			WHERE u.id IN (
+				SELECT friend_id FROM friendships
+				WHERE user_id = ? AND status = "accepted"
+				UNION
+				SELECT user_id FROM friendships
+				WHERE friend_id = ? AND status = "accepted"
+			)
+			ORDER BY u.points DESC
+		''', (session['user_id'], session['user_id'])).fetchall()
 		db.close()
 
 		return jsonify([safe_dict(f) for f in friends]), 200
+
 	except Exception as e:
 		print(f"❌ Get friends error: {e}")
 		return jsonify([]), 500
@@ -1075,137 +1310,167 @@ def get_friend_requests():
 		return jsonify([]), 500
 
 
-# ============ OTHER ENDPOINTS ============
+# ============ COURSES ============
 
 @app.route('/api/courses', methods=['GET'])
 def get_courses():
-	db = get_db()
-	courses = db.execute('SELECT * FROM courses').fetchall()
-	db.close()
-	return jsonify([dict(c) for c in courses])
+	try:
+		db = get_db()
+		courses = db.execute('SELECT * FROM courses WHERE status = "active"').fetchall()
+		db.close()
+		return jsonify([safe_dict(c) for c in courses]), 200
+	except Exception as e:
+		print(f"❌ Get courses error: {e}")
+		return jsonify([]), 500
 
 
 @app.route('/api/my-courses', methods=['GET'])
 def get_my_courses():
 	if 'user_id' not in session:
 		return jsonify([]), 200
-	db = get_db()
-	rows = db.execute('''
-					  SELECT c.*
-					  FROM courses c
-							   JOIN enrollments e ON c.id = e.course_id
-					  WHERE e.user_id = ?
-					  ''', (session['user_id'],)).fetchall()
-	db.close()
-	return jsonify([dict(r) for r in rows])
+
+	try:
+		db = get_db()
+		rows = db.execute('''
+						  SELECT c.*
+						  FROM courses c
+								   JOIN enrollments e ON c.id = e.course_id
+						  WHERE e.user_id = ?
+						  ''', (session['user_id'],)).fetchall()
+		db.close()
+		return jsonify([safe_dict(r) for r in rows]), 200
+	except Exception as e:
+		print(f"❌ Get my courses error: {e}")
+		return jsonify([]), 500
+
 
 @app.route('/api/enroll', methods=['POST'])
 def enroll_course():
-    if 'user_id' not in session:
-        return jsonify({"success": False, "message": "Not authenticated"}), 401
+	if 'user_id' not in session:
+		return jsonify({"success": False, "message": "Not authenticated"}), 401
 
-    data = request.get_json() or {}
-    course_id = data.get('course_id')
+	data = request.get_json() or {}
+	course_id = data.get('course_id')
 
-    if not course_id:
-        return jsonify({"success": False, "message": "Course ID missing"}), 400
+	if not course_id:
+		return jsonify({"success": False, "message": "Course ID missing"}), 400
 
-    db = get_db()
+	try:
+		db = get_db()
 
-    existing = db.execute(
-        "SELECT id FROM enrollments WHERE user_id = ? AND course_id = ?",
-        (session['user_id'], course_id)
-    ).fetchone()
+		existing = db.execute(
+			"SELECT id FROM enrollments WHERE user_id = ? AND course_id = ?",
+			(session['user_id'], course_id)
+		).fetchone()
 
-    if existing:
-        db.close()
-        return jsonify({"success": False, "message": "Already enrolled"}), 400
+		if existing:
+			db.close()
+			return jsonify({"success": False, "message": "Already enrolled"}), 400
 
-    db.execute(
-        "INSERT INTO enrollments (user_id, course_id) VALUES (?, ?)",
-        (session['user_id'], course_id)
-    )
-    db.commit()
-    db.close()
+		db.execute(
+			"INSERT INTO enrollments (user_id, course_id) VALUES (?, ?)",
+			(session['user_id'], course_id)
+		)
+		db.commit()
+		db.close()
 
-    return jsonify({"success": True, "message": "Successfully enrolled"}), 200
+		return jsonify({"success": True, "message": "Successfully enrolled"}), 200
+	except Exception as e:
+		print(f"❌ Enroll error: {e}")
+		return jsonify({"success": False, "message": str(e)}), 500
+
 
 @app.route('/api/unenroll', methods=['POST'])
 def unenroll_course():
-    if 'user_id' not in session:
-        return jsonify({"success": False, "message": "Not authenticated"}), 401
+	if 'user_id' not in session:
+		return jsonify({"success": False, "message": "Not authenticated"}), 401
 
-    data = request.get_json() or {}
-    course_id = data.get('course_id')
+	data = request.get_json() or {}
+	course_id = data.get('course_id')
 
-    if not course_id:
-        return jsonify({"success": False, "message": "Course ID missing"}), 400
+	if not course_id:
+		return jsonify({"success": False, "message": "Course ID missing"}), 400
 
-    db = get_db()
+	try:
+		db = get_db()
 
-    existing = db.execute(
-        "SELECT id FROM enrollments WHERE user_id = ? AND course_id = ?",
-        (session['user_id'], course_id)
-    ).fetchone()
+		existing = db.execute(
+			"SELECT id FROM enrollments WHERE user_id = ? AND course_id = ?",
+			(session['user_id'], course_id)
+		).fetchone()
 
-    if not existing:
-        db.close()
-        return jsonify({"success": False, "message": "Not enrolled in this course"}), 400
+		if not existing:
+			db.close()
+			return jsonify({"success": False, "message": "Not enrolled in this course"}), 400
 
-    db.execute(
-        "DELETE FROM enrollments WHERE user_id = ? AND course_id = ?",
-        (session['user_id'], course_id)
-    )
-    db.commit()
-    db.close()
+		db.execute(
+			"DELETE FROM enrollments WHERE user_id = ? AND course_id = ?",
+			(session['user_id'], course_id)
+		)
+		db.commit()
+		db.close()
 
-    return jsonify({"success": True, "message": "Successfully unenrolled"}), 200
+		return jsonify({"success": True, "message": "Successfully unenrolled"}), 200
+	except Exception as e:
+		print(f"❌ Unenroll error: {e}")
+		return jsonify({"success": False, "message": str(e)}), 500
+
+
+# ============ PROFILE ============
+
 @app.route('/api/profile', methods=['GET', 'PUT'])
 def profile():
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'message': 'Nicht authentifiziert'}), 401
+	if 'user_id' not in session:
+		return jsonify({'success': False, 'message': 'Nicht authentifiziert'}), 401
 
-    db = get_db()
-    try:
-        if request.method == 'GET':
-            profile = db.execute('SELECT * FROM profiles WHERE user_id = ?', (session['user_id'],)).fetchone()
-            db.close()
-            if not profile:
-                return jsonify({}), 200
-            profile_dict = safe_dict(profile)
-            return jsonify(profile_dict), 200
+	db = get_db()
+	try:
+		if request.method == 'GET':
+			profile = db.execute('SELECT * FROM profiles WHERE user_id = ?', (session['user_id'],)).fetchone()
+			db.close()
+			if not profile:
+				return jsonify({}), 200
+			profile_dict = safe_dict(profile)
+			return jsonify(profile_dict), 200
 
-        elif request.method == 'PUT':
-            data = request.get_json() or {}
-            # Validierung optional, z.B. max. Länge, Datumsformat
-            db.execute('''
-                UPDATE profiles
-                SET avatar_url = ?, birthdate = ?, country = ?, bio = ?, favorite_language = ?,
-                    experience_level = ?, profile_visible = ?, friend_requests = ?, email_notifications = ?,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE user_id = ?
-            ''', (
-                data.get('avatar_url'),
-                data.get('birthdate'),
-                data.get('country'),
-                data.get('bio'),
-                data.get('favorite_language'),
-                data.get('experience_level'),
-                int(data.get('profile_visible', True)),
-                int(data.get('friend_requests', True)),
-                int(data.get('email_notifications', True)),
-                session['user_id']
-            ))
-            db.commit()
-            db.close()
-            return jsonify({'success': True, 'message': 'Profil erfolgreich gespeichert'}), 200
+		elif request.method == 'PUT':
+			data = request.get_json() or {}
+			db.execute('''
+					   UPDATE profiles
+					   SET avatar_url          = ?,
+						   birthdate           = ?,
+						   country             = ?,
+						   bio                 = ?,
+						   favorite_language   = ?,
+						   experience_level    = ?,
+						   profile_visible     = ?,
+						   friend_requests     = ?,
+						   email_notifications = ?,
+						   updated_at          = CURRENT_TIMESTAMP
+					   WHERE user_id = ?
+					   ''', (
+				data.get('avatar_url'),
+				data.get('birthdate'),
+				data.get('country'),
+				data.get('bio'),
+				data.get('favorite_language'),
+				data.get('experience_level'),
+				int(data.get('profile_visible', True)),
+				int(data.get('friend_requests', True)),
+				int(data.get('email_notifications', True)),
+				session['user_id']
+					   ))
+			db.commit()
+			db.close()
+			return jsonify({'success': True, 'message': 'Profil erfolgreich gespeichert'}), 200
 
-    except Exception as e:
-        db.close()
-        print(f"❌ Profile error: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
+	except Exception as e:
+		db.close()
+		print(f"❌ Profile error: {e}")
+		import traceback
+		traceback.print_exc()
+		return jsonify({'success': False, 'message': str(e)}), 500
+
 
 if __name__ == '__main__':
 	init_db()
@@ -1213,5 +1478,6 @@ if __name__ == '__main__':
 	print("🚀 OctoCode Backend läuft auf http://127.0.0.1:5001")
 	print("⚡ Groq AI aktiviert!")
 	print("🎯 Points & Friends System aktiv!")
+	print("👨‍🏫 Teacher Dashboard aktiv!")
 	print("=" * 60)
 	app.run(debug=True, host='0.0.0.0', port=5001)

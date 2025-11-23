@@ -8,13 +8,17 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initializeApp() {
+    console.log('🚀 Initializing Teacher Dashboard...');
     await checkTeacherAuth();
     await loadData();
     setupNavigation();
+
+    console.log('🎨 Rendering all sections...');
     renderDashboard();
     renderStudents();
     renderCourses();
     renderTasks();
+    console.log('✅ Initialization complete');
 }
 
 async function checkTeacherAuth() {
@@ -43,9 +47,13 @@ async function loadData() {
         const studentsRes = await fetch('/api/teacher/students', { credentials: 'include' });
         if (studentsRes.ok) {
             students = await studentsRes.json();
+            console.log('✅ Loaded students:', students.length);
+        } else {
+            console.error('❌ Failed to load students:', studentsRes.status);
+            students = [];
         }
     } catch (error) {
-        console.error('Error loading students:', error);
+        console.error('❌ Error loading students:', error);
         students = [];
     }
 
@@ -53,9 +61,13 @@ async function loadData() {
         const coursesRes = await fetch('/api/courses', { credentials: 'include' });
         if (coursesRes.ok) {
             courses = await coursesRes.json();
+            console.log('✅ Loaded courses:', courses.length, courses);
+        } else {
+            console.error('❌ Failed to load courses:', coursesRes.status);
+            courses = [];
         }
     } catch (error) {
-        console.error('Error loading courses:', error);
+        console.error('❌ Error loading courses:', error);
         courses = [];
     }
 
@@ -63,11 +75,37 @@ async function loadData() {
         const tasksRes = await fetch('/api/teacher/tasks', { credentials: 'include' });
         if (tasksRes.ok) {
             tasks = await tasksRes.json();
+            console.log('✅ Loaded tasks:', tasks.length);
+        } else {
+            console.error('❌ Failed to load tasks:', tasksRes.status);
+            tasks = [];
         }
     } catch (error) {
-        console.error('Error loading tasks:', error);
+        console.error('❌ Error loading tasks:', error);
         tasks = [];
     }
+
+    // Загружаем статистику
+    try {
+        const statsRes = await fetch('/api/teacher/stats', { credentials: 'include' });
+        if (statsRes.ok) {
+            const stats = await statsRes.json();
+            console.log('✅ Loaded stats:', stats);
+            updateDashboardStats(stats);
+        }
+    } catch (error) {
+        console.error('❌ Error loading stats:', error);
+    }
+}
+
+function updateDashboardStats(stats) {
+    const totalStudentsEl = document.getElementById('totalStudents');
+    const totalCoursesEl = document.getElementById('totalCourses');
+    const totalTasksEl = document.getElementById('totalTasks');
+
+    if (totalStudentsEl) totalStudentsEl.textContent = stats.totalStudents || 0;
+    if (totalCoursesEl) totalCoursesEl.textContent = stats.totalCourses || 0;
+    if (totalTasksEl) totalTasksEl.textContent = stats.totalTasks || 0;
 }
 
 function setupNavigation() {
@@ -108,34 +146,63 @@ function renderDashboard() {
     const leaderboard = document.getElementById('leaderboard');
 
     if (activityList) {
-        activityList.innerHTML = students.slice(0, 5).map(student => `
-            <div class="activity-item">
-                <img src="${student.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(student.name)}" alt="${student.name}" class="activity-avatar">
-                <div class="activity-info">
-                    <div class="activity-name">${student.name}</div>
-                    <div class="activity-action">hat eine Aufgabe abgeschlossen</div>
+        if (students.length === 0) {
+            activityList.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Keine Aktivitäten</div>';
+        } else {
+            activityList.innerHTML = students.slice(0, 5).map(student => `
+                <div class="activity-item">
+                    <img src="${student.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(student.name)}" alt="${student.name}" class="activity-avatar">
+                    <div class="activity-info">
+                        <div class="activity-name">${student.name}</div>
+                        <div class="activity-action">hat eine Aufgabe abgeschlossen</div>
+                    </div>
+                    <div class="activity-time">${formatDate(student.created_at)}</div>
                 </div>
-                <div class="activity-time">${formatDate(student.created_at)}</div>
-            </div>
-        `).join('');
+            `).join('');
+        }
     }
 
     if (leaderboard) {
-        const sortedStudents = [...students].sort((a, b) => (b.points || 0) - (a.points || 0));
-        leaderboard.innerHTML = sortedStudents.slice(0, 5).map((student, idx) => `
-            <div class="leaderboard-item">
-                <div class="rank">${idx + 1}</div>
-                <img src="${student.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(student.name)}" alt="${student.name}">
-                <div class="student-name">${student.name}</div>
-                <div class="student-points">${student.points || 0} Punkte</div>
-            </div>
-        `).join('');
+        if (students.length === 0) {
+            leaderboard.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Keine Schüler</div>';
+        } else {
+            const sortedStudents = [...students].sort((a, b) => (b.points || 0) - (a.points || 0));
+            leaderboard.innerHTML = sortedStudents.slice(0, 5).map((student, idx) => `
+                <div class="leaderboard-item">
+                    <div class="rank">${idx + 1}</div>
+                    <img src="${student.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(student.name)}" alt="${student.name}">
+                    <div class="student-name">${student.name}</div>
+                    <div class="student-points">${student.points || 0} Punkte</div>
+                </div>
+            `).join('');
+        }
     }
 }
 
 function renderStudents() {
     const studentsGrid = document.getElementById('studentsGrid');
-    if (!studentsGrid) return;
+    if (!studentsGrid) {
+        console.error('❌ studentsGrid element not found');
+        return;
+    }
+
+    console.log('🎨 Rendering students:', students.length);
+
+    if (students.length === 0) {
+        studentsGrid.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #666;">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 16px; opacity: 0.3;">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <h3 style="margin: 0; font-size: 18px;">Keine Schüler gefunden</h3>
+                <p style="margin: 8px 0 0 0; font-size: 14px;">Warten Sie auf neue Registrierungen</p>
+            </div>
+        `;
+        return;
+    }
 
     studentsGrid.innerHTML = students.map(student => `
         <div class="student-card">
@@ -187,7 +254,26 @@ function renderStudents() {
 
 function renderCourses() {
     const coursesList = document.getElementById('coursesList');
-    if (!coursesList) return;
+    if (!coursesList) {
+        console.error('❌ coursesList element not found');
+        return;
+    }
+
+    console.log('🎨 Rendering courses:', courses.length);
+
+    if (courses.length === 0) {
+        coursesList.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #666;">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 16px; opacity: 0.3;">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                </svg>
+                <h3 style="margin: 0; font-size: 18px;">Keine Kurse gefunden</h3>
+                <p style="margin: 8px 0 0 0; font-size: 14px;">Erstellen Sie Ihren ersten Kurs!</p>
+            </div>
+        `;
+        return;
+    }
 
     coursesList.innerHTML = courses.map(course => `
         <div class="course-card-admin">
@@ -195,7 +281,7 @@ function renderCourses() {
             <div class="course-content">
                 <div class="course-main">
                     <div>
-                        <h3>${course.title}</h3>
+                        <h3>${course.title || 'Unbenannter Kurs'}</h3>
                         <span class="course-category" style="background-color: ${course.color || '#3b82f6'}20; color: ${course.color || '#3b82f6'}">
                             ${course.category || 'Allgemein'}
                         </span>
@@ -261,11 +347,34 @@ function renderCourses() {
             </div>
         </div>
     `).join('');
+
+    console.log('✅ Courses rendered successfully');
 }
 
 function renderTasks() {
     const tasksTableBody = document.getElementById('tasksTableBody');
-    if (!tasksTableBody) return;
+    if (!tasksTableBody) {
+        console.error('❌ tasksTableBody element not found');
+        return;
+    }
+
+    console.log('🎨 Rendering tasks:', tasks.length);
+
+    if (tasks.length === 0) {
+        tasksTableBody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 40px; color: #666;">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 16px; opacity: 0.3;">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    <h3 style="margin: 0; font-size: 18px;">Keine Aufgaben gefunden</h3>
+                    <p style="margin: 8px 0 0 0; font-size: 14px;">Erstellen Sie Ihre erste Aufgabe!</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
 
     tasksTableBody.innerHTML = tasks.map(task => `
         <tr>
