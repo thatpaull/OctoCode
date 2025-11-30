@@ -245,12 +245,12 @@ function displayCourses() {
 		const badgeClass = course.category === 'Development' ? 'blue' : 'yellow';
 
 		return `
-			<div class="course-card ${isEnrolled ? 'enrolled' : ''}">
+			<div class="course-card ${isEnrolled ? 'enrolled' : ''}" data-course-id="${course.id}" style="cursor: pointer;">
 				<div class="course-header">
 					<div class="course-badge ${badgeClass}">${course.category || 'Coding'}</div>
 					${isEnrolled ?
-						`<button class="enroll-btn enrolled" onclick="unenrollCourse(${course.id})">✓ Abmelden</button>` :
-						`<button class="enroll-btn primary" onclick="enrollCourse(${course.id})">+ Einschreiben</button>`
+						`<button class="enroll-btn enrolled" onclick="event.stopPropagation(); unenrollCourse(${course.id}); return false;">✓ Abmelden</button>` : // enrolled
+						`<button class="enroll-btn primary" onclick="event.stopPropagation(); enrollCourse(${course.id}); return false;">+ Einschreiben</button>` // not enrolled
 					}
 				</div>
 				<h3 class="course-title">${course.title}</h3>
@@ -261,6 +261,14 @@ function displayCourses() {
 			</div>
 		`;
 	}).join('');
+	// Add click listeners to course cards
+	document.querySelectorAll('.course-card').forEach(card => {
+    card.addEventListener('click', function() {
+        const courseId = this.getAttribute('data-course-id');
+        console.log('📚 Öffne Kurs:', courseId);
+        window.location.href = `/kurs.html?id=${courseId}`;
+    });
+});
 }
 
 async function enrollCourse(courseId) {

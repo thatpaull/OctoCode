@@ -1323,7 +1323,229 @@ def get_courses():
 		print(f"❌ Get courses error: {e}")
 		return jsonify([]), 500
 
-
+# ============ COURSE DETAIL ============
+@app.route('/api/courses/<int:course_id>', methods=['GET'])
+def get_course_detail(course_id):
+    """Get detailed information for a single course"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Not authenticated'}), 401
+    
+    try:
+        db = get_db()
+        
+        # Get course information
+        course = db.execute('SELECT * FROM courses WHERE id = ?', (course_id,)).fetchone()
+        
+        if not course:
+            db.close()
+            return jsonify({'success': False, 'message': 'Course not found'}), 404
+        
+        course_dict = safe_dict(course)
+        
+        # Create lessons based on course title
+        if 'Python' in course_dict.get('title', ''):
+            # Python für Anfänger: 12 Lektionen, 6h total (30min each)
+            lessons = [
+                {
+                    'id': 1,
+                    'title': 'Einführung in Python',
+                    'duration': 30,
+                    'completed': False,
+                    'content': 'Willkommen bei Python! In dieser Lektion lernst du was Python ist und wie du es installierst.',
+                    'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=0&end=1800'
+                },
+                {
+                    'id': 2,
+                    'title': 'Variablen und Datentypen',
+                    'duration': 30,
+                    'completed': False,
+                    'content': 'Lerne wie man Variablen erstellt und die verschiedenen Datentypen in Python kennt.',
+                    'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=1800&end=3600'
+                },
+                {
+                    'id': 3,
+                    'title': 'Strings und Textverarbeitung',
+                    'duration': 30,
+                    'completed': False,
+                    'content': 'Arbeite mit Text: String-Methoden, Formatting und mehr.',
+                    'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=3600&end=5400'
+                },
+                {
+                    'id': 4,
+                    'title': 'Listen und Tuples',
+                    'duration': 30,
+                    'completed': False,
+                    'content': 'Entdecke Listen und Tuples - wichtige Datenstrukturen in Python.',
+                    'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=5400&end=7200'
+                },
+                {
+                    'id': 5,
+                    'title': 'Dictionaries und Sets',
+                    'duration': 30,
+                    'completed': False,
+                    'content': 'Lerne Dictionaries für Key-Value Paare und Sets kennen.',
+                    'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=7200&end=9000'
+                },
+                {
+                    'id': 6,
+                    'title': 'If-Else Bedingungen',
+                    'duration': 30,
+                    'completed': False,
+                    'content': 'Treffe Entscheidungen in deinem Code mit if-else Statements.',
+                    'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=9000&end=10800'
+                },
+                {
+                    'id': 7,
+                    'title': 'For Schleifen',
+                    'duration': 30,
+                    'completed': False,
+                    'content': 'Wiederhole Code effizient mit for-Loops.',
+                    'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=10800&end=12600'
+                },
+                {
+                    'id': 8,
+                    'title': 'While Schleifen',
+                    'duration': 30,
+                    'completed': False,
+                    'content': 'Lerne while-Loops für bedingte Wiederholungen.',
+                    'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=12600&end=14400'
+                },
+                {
+                    'id': 9,
+                    'title': 'Funktionen',
+                    'duration': 30,
+                    'completed': False,
+                    'content': 'Erstelle wiederverwendbare Funktionen.',
+                    'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=14400&end=16200'
+                },
+                {
+                    'id': 10,
+                    'title': 'Module und Imports',
+                    'duration': 30,
+                    'completed': False,
+                    'content': 'Arbeite mit Python-Modulen und externen Bibliotheken.',
+                    'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=16200&end=18000'
+                },
+                {
+                    'id': 11,
+                    'title': 'Fehlerbehandlung',
+                    'duration': 30,
+                    'completed': False,
+                    'content': 'Behandle Fehler professionell mit try-except.',
+                    'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=18000&end=19800'
+                },
+                {
+                    'id': 12,
+                    'title': 'Praxis-Projekt',
+                    'duration': 30,
+                    'completed': False,
+                    'content': 'Wende dein Wissen an: Erstelle dein erstes Python-Projekt!',
+                    'video_url': 'https://www.youtube.com/embed/kqtD5dpn9C8'
+                }
+            ]
+        elif 'HTML' in course_dict.get('title', '') or 'CSS' in course_dict.get('title', '') or 'Web' in course_dict.get('title', ''):
+            # Webentwicklung mit HTML/CSS: 8 Lektionen, 4h total (30min average)
+            lessons = [
+                {
+                    'id': 1,
+                    'title': 'HTML Grundlagen - Einführung',
+                    'duration': 20,
+                    'completed': False,
+                    'content': 'Lerne HTML in 20 Minuten! Was ist HTML? Grundstruktur, Elemente und Tags.',
+                    'video_url': 'https://www.youtube.com/embed/Q3MIitoSQkE'
+                },
+                {
+                    'id': 2,
+                    'title': 'HTML Vertiefung',
+                    'duration': 35,
+                    'completed': False,
+                    'content': 'Vertiefe dein HTML-Wissen: Formulare, Tabellen und semantische Elemente.',
+                    'video_url': 'https://www.youtube.com/embed/Q3MIitoSQkE'
+                },
+                {
+                    'id': 3,
+                    'title': 'HTML Praxis',
+                    'duration': 25,
+                    'completed': False,
+                    'content': 'Praktische HTML-Übungen: Erstelle deine erste Webseite.',
+                    'video_url': 'https://www.youtube.com/embed/Q3MIitoSQkE'
+                },
+                {
+                    'id': 4,
+                    'title': 'CSS Grundlagen - Teil 1',
+                    'duration': 30,
+                    'completed': False,
+                    'content': 'CSS Kurs in 40 Minuten! Einführung: Selektoren, Farben und Text.',
+                    'video_url': 'https://www.youtube.com/embed/I84aQhbJl_Y?start=0&end=1200'
+                },
+                {
+                    'id': 5,
+                    'title': 'CSS Grundlagen - Teil 2',
+                    'duration': 30,
+                    'completed': False,
+                    'content': 'Box Model: margin, padding, border verstehen und anwenden.',
+                    'video_url': 'https://www.youtube.com/embed/I84aQhbJl_Y?start=600&end=1800'
+                },
+                {
+                    'id': 6,
+                    'title': 'CSS Layout - Flexbox',
+                    'duration': 30,
+                    'completed': False,
+                    'content': 'Moderne Layouts mit Flexbox erstellen.',
+                    'video_url': 'https://www.youtube.com/embed/I84aQhbJl_Y?start=1200&end=2400'
+                },
+                {
+                    'id': 7,
+                    'title': 'CSS Positionierung',
+                    'duration': 30,
+                    'completed': False,
+                    'content': 'Elemente positionieren: relative, absolute, fixed.',
+                    'video_url': 'https://www.youtube.com/embed/I84aQhbJl_Y?start=1800&end=3000'
+                },
+                {
+                    'id': 8,
+                    'title': 'CSS & HTML Projekt',
+                    'duration': 40,
+                    'completed': False,
+                    'content': 'Abschlussprojekt: Erstelle eine komplette responsive Webseite!',
+                    'video_url': 'https://www.youtube.com/embed/I84aQhbJl_Y'
+                }
+            ]
+        else:
+            # Default lessons for other courses
+            lessons = [
+                {
+                    'id': 1,
+                    'title': 'Einführung',
+                    'duration': 30,
+                    'completed': False,
+                    'content': 'Einführung in das Thema.',
+                    'video_url': 'https://www.youtube.com/embed/kqtD5dpn9C8'
+                },
+                {
+                    'id': 2,
+                    'title': 'Grundlagen',
+                    'duration': 30,
+                    'completed': False,
+                    'content': 'Lerne die Grundlagen kennen.',
+                    'video_url': 'https://www.youtube.com/embed/kqtD5dpn9C8'
+                }
+            ]
+        
+        course_dict['lessons'] = lessons
+        course_dict['quiz'] = {'id': f'quiz_{course_id}'}
+        
+        db.close()
+        
+        return jsonify({'success': True, 'course': course_dict}), 200
+        
+    except Exception as e:
+        print(f"❌ Get course detail error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+	
+# ============ MY COURSES ============
 @app.route('/api/my-courses', methods=['GET'])
 def get_my_courses():
 	if 'user_id' not in session:
