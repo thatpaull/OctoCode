@@ -462,7 +462,35 @@ def init_db():
 						   VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 						   ''', course)
 		print(f"✅ {len(test_courses)} Kurse erstellt")
-
+		
+# Quizzes table
+	cursor.execute('''
+		CREATE TABLE IF NOT EXISTS quizzes (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			course_id INTEGER NOT NULL,
+			user_id INTEGER NOT NULL,
+			title TEXT NOT NULL,
+			questions_json TEXT NOT NULL,
+			created_at TEXT NOT NULL,
+			FOREIGN KEY (course_id) REFERENCES courses(id),
+			FOREIGN KEY (user_id) REFERENCES users(id)
+		)
+	''')
+	
+	# Quiz answers table
+	cursor.execute('''
+		CREATE TABLE IF NOT EXISTS quiz_answers (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			quiz_id INTEGER NOT NULL,
+			user_id INTEGER NOT NULL,
+			answers_json TEXT NOT NULL,
+			score INTEGER NOT NULL,
+			passed INTEGER NOT NULL,
+			submitted_at TEXT NOT NULL,
+			FOREIGN KEY (quiz_id) REFERENCES quizzes(id),
+			FOREIGN KEY (user_id) REFERENCES users(id)
+		)
+	''')
 	db.commit()
 	db.close()
 	print("✅ База данных инициализирована")
@@ -1637,7 +1665,291 @@ def unenroll_course():
 		print(f"❌ Unenroll error: {e}")
 		return jsonify({"success": False, "message": str(e)}), 500
 
+# ============ QUIZ SYSTEM ============
 
+class QuizGenerator:
+	def __init__(self, course_title, course_description):
+		self.course_title = course_title
+		self.course_description = course_description
+	
+	def generate_quiz(self, num_questions=5):
+		"""Generate quiz using Groq AI"""
+		try:
+			prompt = f"""Du bist ein Experte für Bildungsinhalte. Erstelle ein Quiz mit {num_questions} Fragen zum Thema: "{self.course_title}".
+
+Kurs-Beschreibung: {self.course_description}
+
+Erstelle ein JSON-Objekt mit folgendem Format:
+{{
+    "questions": [
+        {{
+            "id": 1,
+            "question": "Frage Text hier?",
+            "options": ["Option A", "Option B", "Option C", "Option D"],
+            "correct_answer": 0,
+            "explanation": "Erklärung warum diese Antwort richtig ist"
+        }}
+    ]
+}}
+
+WICHTIG:
+- Erstelle genau {num_questions} Fragen
+- Multiple-Choice Fragen mit 4 Optionen
+- Fragen sollen verschiedene Schwierigkeitsgrade haben
+- Explanationen sollen lehrreich sein
+- Alle Texte auf Deutsch
+- NUR JSON zurückgeben, keine zusätzlichen Texte
+"""
+
+			response = groq_client.chat.completions.create(
+				model="llama-3.3-70b-versatile",
+				messages=[
+					{
+						"role": "system",
+						"content": "Du bist ein professioneller Quiz-Generator für Bildungszwecke. Antworte NUR mit validem JSON."
+					},
+					{
+						"role": "user",
+						"content": prompt
+					}
+				],
+				temperature=0.7,
+				max_tokens=2000
+			)
+
+			response_text = response.choices[0].message.content.strip()
+			
+			# Remove markdown code blocks if present
+			if response_text.startswith('```json'):
+				response_text = response_text[7:]
+			if response_text.startswith('```'):
+				response_text = response_text[3:]
+			if response_text.endswith('```'):
+				response_text = response_text[:-3]
+			response_text = response_text.strip()
+
+			quiz_data = json.loads(response_text)
+			return quiz_data
+
+		except Exception as e:
+			print(f"❌ Quiz generation error: {e}")
+			import traceback
+			traceback.print_exc()
+			# Fallback quiz if AI fails
+			return self._get_fallback_quiz()
+	
+	def _get_fallback_quiz(self):
+		"""Fallback quiz if AI generation fails"""
+		return {
+			"questions": [
+				{
+					"id": 1,
+					"question": f"Was ist das Hauptthema von {self.course_title}?",
+					"options": [
+						"Programmierung",
+						"Mathematik",
+						"Geschichte",
+						"Kunst"
+					],
+					"correct_answer": 0,
+					"explanation": "Dieser Kurs konzentriert sich auf Programmierung."
+				},
+				{
+					"id": 2,
+					"question": "Welche Fähigkeiten wirst du in diesem Kurs lernen?",
+					"options": [
+						"Grundlegende Konzepte",
+						"Fortgeschrittene Techniken",
+						"Praktische Anwendungen",
+						"Alle oben genannten"
+					],
+					"correct_answer": 3,
+					"explanation": "Der Kurs deckt alle diese Bereiche ab."
+				}
+			]
+		}
+
+
+@app.route('/api/quizzes/<quiz_id>', methods=['GET'])
+def get_quiz(quiz_id):
+	"""Get or generate a quiz for a course"""
+	if 'user_id' not in session:
+		return jsonify({'success': False, 'message': 'Not authenticated'}), 401
+	
+	try:
+		print(f"🎓 Quiz request received: {quiz_id}")
+		
+		# Extract course_id from quiz_id (format: quiz_1)
+		course_id = int(quiz_id.replace('quiz_', ''))
+		print(f"📚 Course ID: {course_id}")
+		
+		db = get_db()
+		
+		# Check if quiz already exists for this user
+		existing_quiz = db.execute('''
+			SELECT * FROM quizzes 
+			WHERE course_id = ? AND user_id = ?
+		''', (course_id, session['user_id'])).fetchone()
+		
+		if existing_quiz:
+			print(f"✅ Found existing quiz")
+			# Return existing quiz
+			quiz_data = json.loads(existing_quiz['questions_json'])
+			db.close()
+			
+			return jsonify({
+				'success': True,
+				'quiz': {
+					'id': quiz_id,
+					'title': existing_quiz['title'],
+					'questions': quiz_data['questions']
+				}
+			}), 200
+		
+		# Get course info
+		course = db.execute('SELECT * FROM courses WHERE id = ?', (course_id,)).fetchone()
+		
+		if not course:
+			db.close()
+			print(f"❌ Course not found: {course_id}")
+			return jsonify({'success': False, 'message': 'Course not found'}), 404
+		
+		course_dict = safe_dict(course)
+		
+		# Generate new quiz using AI
+		print(f"🤖 Generating new quiz for: {course_dict['title']}")
+		generator = QuizGenerator(
+			course_title=course_dict['title'],
+			course_description=course_dict['description']
+		)
+		
+		quiz_data = generator.generate_quiz(num_questions=5)
+		
+		# Save quiz to database
+		db.execute('''
+			INSERT INTO quizzes (course_id, user_id, title, questions_json, created_at)
+			VALUES (?, ?, ?, ?, datetime('now'))
+		''', (
+			course_id,
+			session['user_id'],
+			f"Quiz: {course_dict['title']}",
+			json.dumps(quiz_data, ensure_ascii=False)
+		))
+		db.commit()
+		db.close()
+		
+		print(f"✅ Quiz generated and saved!")
+		
+		return jsonify({
+			'success': True,
+			'quiz': {
+				'id': quiz_id,
+				'title': f"Quiz: {course_dict['title']}",
+				'questions': quiz_data['questions']
+			}
+		}), 200
+		
+	except Exception as e:
+		print(f"❌ Get quiz error: {e}")
+		import traceback
+		traceback.print_exc()
+		return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/quizzes/<quiz_id>/submit', methods=['POST'])
+def submit_quiz(quiz_id):
+	"""Submit quiz answers and get results"""
+	if 'user_id' not in session:
+		return jsonify({'success': False, 'message': 'Not authenticated'}), 401
+	
+	try:
+		data = request.get_json()
+		user_answers = data.get('answers', {})
+		
+		# Extract course_id
+		course_id = int(quiz_id.replace('quiz_', ''))
+		
+		db = get_db()
+		
+		# Get quiz
+		quiz = db.execute('''
+			SELECT * FROM quizzes 
+			WHERE course_id = ? AND user_id = ?
+		''', (course_id, session['user_id'])).fetchone()
+		
+		if not quiz:
+			db.close()
+			return jsonify({'success': False, 'message': 'Quiz not found'}), 404
+		
+		quiz_data = json.loads(quiz['questions_json'])
+		questions = quiz_data['questions']
+		
+		# Calculate score
+		correct = 0
+		total = len(questions)
+		results = []
+		
+		for question in questions:
+			q_id = str(question['id'])
+			user_answer = user_answers.get(q_id)
+			correct_answer = question['correct_answer']
+			
+			is_correct = user_answer == correct_answer
+			if is_correct:
+				correct += 1
+			
+			results.append({
+				'question_id': question['id'],
+				'correct': is_correct,
+				'user_answer': user_answer,
+				'correct_answer': correct_answer,
+				'explanation': question['explanation']
+			})
+		
+		score = int((correct / total) * 100)
+		passed = score >= 60  # 60% passing score
+		
+		# Save result to database
+		db.execute('''
+			INSERT INTO quiz_answers (quiz_id, user_id, answers_json, score, passed, submitted_at)
+			VALUES (?, ?, ?, ?, ?, datetime('now'))
+		''', (
+			quiz['id'],
+			session['user_id'],
+			json.dumps(user_answers),
+			score,
+			1 if passed else 0
+		))
+		db.commit()
+		
+		# Award points if passed
+		if passed:
+			points_earned = 500
+			db.execute('UPDATE users SET points = points + ? WHERE id = ?',
+					  (points_earned, session['user_id']))
+			db.execute('INSERT INTO points_history (user_id, points, reason) VALUES (?, ?, ?)',
+					  (session['user_id'], points_earned, f'Quiz bestanden: {quiz["title"]}'))
+			db.commit()
+			print(f"✅ Quiz passed! +{points_earned} points")
+		
+		db.close()
+		
+		return jsonify({
+			'success': True,
+			'score': score,
+			'correct': correct,
+			'total': total,
+			'passed': passed,
+			'passing_score': 60,
+			'results': results
+		}), 200
+		
+	except Exception as e:
+		print(f"❌ Submit quiz error: {e}")
+		import traceback
+		traceback.print_exc()
+		return jsonify({'success': False, 'message': str(e)}), 500
+	
 # ============ PROFILE ============
 
 @app.route('/api/profile', methods=['GET', 'PUT'])
