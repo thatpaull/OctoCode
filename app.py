@@ -2191,6 +2191,58 @@ def submit_quiz(quiz_id):
 		import traceback
 		traceback.print_exc()
 		return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/quizzes/history/<int:course_id>', methods=['GET'])
+def get_quiz_history(course_id):
+	"""Get quiz history for a course"""
+	if 'user_id' not in session:
+		return jsonify({'success': False, 'message': 'Not authenticated'}), 401
+	
+	try:
+		db = get_db()
+		
+		# Get all quiz attempts with their results
+		history = db.execute('''
+			SELECT 
+				q.id,
+				q.title,
+				q.attempt_number,
+				q.created_at,
+				qa.score,
+				qa.passed,
+				qa.feedback,
+				qa.submitted_at
+			FROM quizzes q
+			LEFT JOIN quiz_answers qa ON q.id = qa.quiz_id
+			WHERE q.course_id = ? AND q.user_id = ?
+			ORDER BY q.created_at DESC
+		''', (course_id, session['user_id'])).fetchall()
+		
+		db.close()
+		
+		history_list = []
+		for item in history:
+			history_list.append({
+				'id': item['id'],
+				'title': item['title'],
+				'attempt_number': item['attempt_number'],
+				'created_at': item['created_at'],
+				'score': item['score'],
+				'passed': item['passed'],
+				'feedback': item['feedback'],
+				'submitted_at': item['submitted_at']
+			})
+		
+		return jsonify({
+			'success': True,
+			'history': history_list
+		}), 200
+		
+	except Exception as e:
+		print(f"❌ Get quiz history error: {e}")
+		import traceback
+		traceback.print_exc()
+		return jsonify({'success': False, 'message': str(e)}), 500
 	
 # ============ PROFILE ============
 
