@@ -1673,24 +1673,24 @@ class QuizGenerator:
 		self.course_title = course_title
 		self.course_description = course_description
 	
-def generate_quiz(self, num_questions=10, user_id=None, difficulty="medium"):
-	"""Generate quiz using Groq AI with randomization and difficulty"""
-	try:
-		# Add randomization seed based on timestamp and user_id
-		import time
-		seed = int(time.time() * 1000) + (user_id or 0)
-		
-		# Difficulty descriptions for AI
-		difficulty_map = {
-			"easy": "einfach - Grundlegende Konzepte, direkte Fragen",
-			"medium": "mittel - Anwendung von Konzepten, einige Denkaufgaben",
-			"hard": "schwer - Komplexe Probleme, fortgeschrittene Konzepte",
-			"adaptive": "gemischt - Verschiedene Schwierigkeitsgrade"
-		}
-		
-		difficulty_desc = difficulty_map.get(difficulty, difficulty_map["medium"])
-		
-		prompt = f"""Du bist ein Experte für Bildungsinhalte. Erstelle ein EINZIGARTIGES Quiz mit {num_questions} Fragen zum Thema: "{self.course_title}".
+	def generate_quiz(self, num_questions=10, user_id=None, difficulty="medium"):
+		"""Generate quiz using Groq AI with randomization and difficulty"""
+		try:
+			# Add randomization seed based on timestamp and user_id
+			import time
+			seed = int(time.time() * 1000) + (user_id or 0)
+			
+			# Difficulty descriptions for AI
+			difficulty_map = {
+				"easy": "einfach - Grundlegende Konzepte, direkte Fragen",
+				"medium": "mittel - Anwendung von Konzepten, einige Denkaufgaben",
+				"hard": "schwer - Komplexe Probleme, fortgeschrittene Konzepte",
+				"adaptive": "gemischt - Verschiedene Schwierigkeitsgrade"
+			}
+			
+			difficulty_desc = difficulty_map.get(difficulty, difficulty_map["medium"])
+			
+			prompt = f"""Du bist ein Experte für Bildungsinhalte. Erstelle ein EINZIGARTIGES Quiz mit {num_questions} Fragen zum Thema: "{self.course_title}".
 
 Kurs-Beschreibung: {self.course_description}
 
@@ -1736,51 +1736,156 @@ WICHTIG:
 - NUR JSON zurückgeben, keine zusätzlichen Texte
 """
 
+			response = groq_client.chat.completions.create(
+				model="llama-3.3-70b-versatile",
+				messages=[
+					{
+						"role": "system",
+						"content": "Du bist ein professioneller Quiz-Generator. Generiere IMMER unterschiedliche Fragen. Antworte NUR mit validem JSON."
+					},
+					{
+						"role": "user",
+						"content": prompt
+					}
+				],
+				temperature=0.9,
+				max_tokens=4000,
+				top_p=0.95
+			)
+
+			response_text = response.choices[0].message.content.strip()
+			
+			# Remove markdown code blocks if present
+			if response_text.startswith('```json'):
+				response_text = response_text[7:]
+			if response_text.startswith('```'):
+				response_text = response_text[3:]
+			if response_text.endswith('```'):
+				response_text = response_text[:-3]
+			response_text = response_text.strip()
+
+			quiz_data = json.loads(response_text)
+			
+			# Add unique IDs and ensure difficulty field exists
+			for i, question in enumerate(quiz_data['questions']):
+				question['id'] = i + 1
+				if 'difficulty' not in question:
+					question['difficulty'] = difficulty
+			
+			return quiz_data
+
+		except Exception as e:
+			print(f"❌ Quiz generation error: {e}")
+			import traceback
+			traceback.print_exc()
+			return self._get_fallback_quiz()
+	
+	def _get_fallback_quiz(self):
+		"""Fallback quiz if AI generation fails"""
+		return {
+			"questions": [
+				{
+					"id": 1,
+					"type": "multiple_choice",
+					"question": f"Was ist das Hauptthema von {self.course_title}?",
+					"options": [
+						"Programmierung",
+						"Mathematik",
+						"Geschichte",
+						"Kunst"
+					],
+					"correct_answer": 0,
+					"explanation": "Dieser Kurs konzentriert sich auf Programmierung."
+				},
+				{
+					"id": 2,
+					"type": "code",
+					"question": "Was ist die Ausgabe dieses Codes?",
+					"code": "x = 5\nprint(x + 3)",
+					"options": [
+						"8",
+						"53",
+						"5 + 3",
+						"Error"
+					],
+					"correct_answer": 0,
+					"explanation": "5 + 3 = 8"
+				}
+			]
+		}
+
+
+def generate_ai_feedback(score, correct, total, difficulty, course_title):
+	"""Generate personalized AI feedback based on quiz performance"""
+	try:
+		prompt = f"""Du bist ein erfahrener Programmierlehrer. Ein Schüler hat gerade ein Quiz zum Thema "{course_title}" abgeschlossen.
+
+Ergebnisse:
+- Punkte: {score}%
+- Richtig: {correct} von {total}
+- Schwierigkeitsgrad: {difficulty}
+
+Erstelle personalisiertes Feedback mit:
+1. Lob für gute Leistung oder Ermutigung
+2. Konkrete Verbesserungsvorschläge
+3. Empfehlung für nächste Schritte
+4. Vorschlag für Schwierigkeitsgrad beim nächsten Quiz
+
+Antworte NUR mit JSON:
+{{
+  "message": "Dein Feedback hier (2-3 Sätze)",
+  "suggestions": ["Tipp 1", "Tipp 2"],
+  "next_difficulty": "easy/medium/hard",
+  "next_steps": "Was der Schüler als nächstes tun sollte"
+}}
+"""
+
 		response = groq_client.chat.completions.create(
 			model="llama-3.3-70b-versatile",
 			messages=[
 				{
 					"role": "system",
-					"content": "Du bist ein professioneller Quiz-Generator. Generiere IMMER unterschiedliche Fragen. Antworte NUR mit validem JSON."
+					"content": "Du bist ein motivierender Programmierlehrer. Gib konstruktives Feedback. Antworte NUR mit JSON."
 				},
 				{
 					"role": "user",
 					"content": prompt
 				}
 			],
-			temperature=0.9,
-			max_tokens=4000,
-			top_p=0.95
+			temperature=0.7,
+			max_tokens=500
 		)
 
 		response_text = response.choices[0].message.content.strip()
+		response_text = response_text.replace('```json', '').replace('```', '').strip()
 		
-		# Remove markdown code blocks if present
-		if response_text.startswith('```json'):
-			response_text = response_text[7:]
-		if response_text.startswith('```'):
-			response_text = response_text[3:]
-		if response_text.endswith('```'):
-			response_text = response_text[:-3]
-		response_text = response_text.strip()
-
-		quiz_data = json.loads(response_text)
-		
-		# Add unique IDs and ensure difficulty field exists
-		for i, question in enumerate(quiz_data['questions']):
-			question['id'] = i + 1
-			if 'difficulty' not in question:
-				question['difficulty'] = difficulty
-		
-		return quiz_data
+		feedback_data = json.loads(response_text)
+		return json.dumps(feedback_data, ensure_ascii=False)
 
 	except Exception as e:
-		print(f"❌ Quiz generation error: {e}")
-		import traceback
-		traceback.print_exc()
-		return self._get_fallback_quiz()
-
-def generate_ai_feedback(score, correct, total, difficulty, course_title):
+		print(f"❌ AI feedback error: {e}")
+		# Fallback feedback
+		if score >= 80:
+			return json.dumps({
+				"message": "Ausgezeichnet! Du hast das Quiz sehr gut gemeistert!",
+				"suggestions": ["Versuche den nächsten Schwierigkeitsgrad"],
+				"next_difficulty": "hard",
+				"next_steps": "Fordere dich mit schwierigeren Aufgaben heraus"
+			}, ensure_ascii=False)
+		elif score >= 60:
+			return json.dumps({
+				"message": "Gut gemacht! Du hast bestanden!",
+				"suggestions": ["Wiederhole die schwierigeren Themen"],
+				"next_difficulty": "medium",
+				"next_steps": "Übe weiter um sicherer zu werden"
+			}, ensure_ascii=False)
+		else:
+			return json.dumps({
+				"message": "Nicht aufgeben! Übung macht den Meister!",
+				"suggestions": ["Schaue die Videos nochmal an", "Beginne mit einfacheren Aufgaben"],
+				"next_difficulty": "easy",
+				"next_steps": "Wiederhole die Grundlagen"
+			}, ensure_ascii=False)
 	"""Generate personalized AI feedback based on quiz performance"""
 	try:
 		prompt = f"""Du bist ein erfahrener Programmierlehrer. Ein Schüler hat gerade ein Quiz zum Thema "{course_title}" abgeschlossen.
