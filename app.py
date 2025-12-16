@@ -8,16 +8,24 @@ import base64
 import json
 from groq import Groq
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__, static_folder='static', static_url_path='')
-app.secret_key = 'your-secret-key-change-it-in-production'
+app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-change-it-in-production')
 CORS(app, supports_credentials=True, origins=['http://127.0.0.1:5001'])
 
 DATABASE = 'octocode.db'
 UPLOAD_FOLDER = 'static/uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-GROQ_API_KEY = "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"
+# Get API key from environment variable
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+if not GROQ_API_KEY:
+    raise ValueError("❌ GROQ_API_KEY not found in .env file!")
+
 groq_client = Groq(api_key=GROQ_API_KEY)
 
 
