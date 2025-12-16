@@ -2070,7 +2070,6 @@ def get_quiz(quiz_id):
 		traceback.print_exc()
 		return jsonify({'success': False, 'message': str(e)}), 500
 
-
 @app.route('/api/quizzes/<quiz_id>/submit', methods=['POST'])
 def submit_quiz(quiz_id):
 	"""Submit quiz answers and get results"""
@@ -2080,21 +2079,37 @@ def submit_quiz(quiz_id):
 	try:
 		data = request.get_json()
 		user_answers = data.get('answers', {})
+		db_quiz_id = data.get('db_id')  # Get the database quiz ID
 		
-		# Extract course_id
-		course_id = int(quiz_id.replace('quiz_', ''))
+		if not db_quiz_id:
+			# Fallback: try to get the latest quiz for this course
+			course_id = int(quiz_id.split('_')[1])
+			db = get_db()
+			latest_quiz = db.execute('''
+				SELECT * FROM quizzes 
+				WHERE course_id = ? AND user_id = ?
+				ORDER BY created_at DESC
+				LIMIT 1
+			''', (course_id, session['user_id'])).fetchone()
+			
+			if not latest_quiz:
+				db.close()
+				return jsonify({'success': False, 'message': 'Quiz not found'}), 404
+			
+			db_quiz_id = latest_quiz['id']
 		
 		db = get_db()
 		
 		# Get quiz
-		quiz = db.execute('''
-			SELECT * FROM quizzes 
-			WHERE course_id = ? AND user_id = ?
-		''', (course_id, session['user_id'])).fetchone()
+		quiz = db.execute('SELECT * FROM quizzes WHERE id = ?', (db_quiz_id,)).fetchone()
 		
 		if not quiz:
 			db.close()
 			return jsonify({'success': False, 'message': 'Quiz not found'}), 404
+		
+		# Get course info for feedback
+		course = db.execute('SELECT * FROM courses WHERE id = ?', (quiz['course_id'],)).fetchone()
+		course_dict = safe_dict(course)
 		
 		quiz_data = json.loads(quiz['questions_json'])
 		questions = quiz_data['questions']
@@ -2124,16 +2139,26 @@ def submit_quiz(quiz_id):
 		score = int((correct / total) * 100)
 		passed = score >= 60  # 60% passing score
 		
-		# Save result to database
+		# Generate AI feedback based on performance
+		feedback = generate_ai_feedback(
+			score=score,
+			correct=correct,
+			total=total,
+			difficulty='medium',  # You can get this from quiz data if stored
+			course_title=course_dict['title']
+		)
+		
+		# Save result to database with feedback
 		db.execute('''
-			INSERT INTO quiz_answers (quiz_id, user_id, answers_json, score, passed, submitted_at)
-			VALUES (?, ?, ?, ?, ?, datetime('now'))
+			INSERT INTO quiz_answers (quiz_id, user_id, answers_json, score, passed, feedback, submitted_at)
+			VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
 		''', (
-			quiz['id'],
+			db_quiz_id,
 			session['user_id'],
 			json.dumps(user_answers),
 			score,
-			1 if passed else 0
+			1 if passed else 0,
+			feedback
 		))
 		db.commit()
 		
@@ -2149,25 +2174,6 @@ def submit_quiz(quiz_id):
 		
 		db.close()
 		
-        # Generate AI feedback based on performance
-		feedback = generate_ai_feedback(
-			score=score,
-			correct=correct,
-			total=total,
-			difficulty=quiz.get('difficulty', 'medium'),
-			course_title=course_dict['title']
-		)
-		
-		# Save feedback to database
-		db.execute('''
-			UPDATE quiz_answers 
-			SET feedback = ? 
-			WHERE quiz_id = ? AND user_id = ?
-		''', (feedback, db_quiz_id, session['user_id']))
-		db.commit()
-		
-		db.close()
-		
 		return jsonify({
 			'success': True,
 			'score': score,
@@ -2177,7 +2183,7 @@ def submit_quiz(quiz_id):
 			'passing_score': 60,
 			'results': results,
 			'attempt_number': quiz['attempt_number'],
-			'ai_feedback': feedback  # Add AI feedback
+			'ai_feedback': feedback
 		}), 200
 		
 	except Exception as e:
