@@ -474,11 +474,23 @@
 			}
 		}
 
+
 		// Start quiz
 		function startQuiz() {
-			if (currentCourse.quiz) {
-				window.location.href = `/quiz.html?id=${currentCourse.quiz.id}`;
+			if (!currentCourse || !currentCourse.quiz) {
+				alert('Kein Quiz verfügbar für diesen Kurs.');
+				return;
 			}
+
+			// Get user settings
+			const questionCount = document.getElementById('quizQuestionCount').value;
+			const difficulty = document.getElementById('quizDifficulty').value;
+
+			console.log('🎓 Quiz starten mit:', questionCount, 'Fragen, Schwierigkeit:', difficulty);
+
+			// Navigate to quiz with parameters
+			const quizId = currentCourse.quiz.id;
+			window.location.href = `/quiz.html?id=${quizId}&count=${questionCount}&difficulty=${difficulty}`;
 		}
 
 		// Init
