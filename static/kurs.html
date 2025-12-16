@@ -438,6 +438,23 @@
 				</div>
 			</div>
 		</main>
+		
+		<!-- Quiz History Modal -->
+		<div class="modal-overlay" id="quizHistoryModal">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h2 style="margin: 0;">📊 Quiz Verlauf & KI-Feedback</h2>
+					<button class="modal-close" onclick="closeQuizHistory()">×</button>
+				</div>
+				<div id="quizHistoryContent">
+					<div class="empty-state">
+						<div class="empty-state-icon">⏳</div>
+						<p>Lade Quiz Verlauf...</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 	</div>
 
 	<script>
@@ -638,6 +655,153 @@
 		// Init
 		checkAuth();
 		loadCourse();
+		// Show quiz history modal
+		async function showQuizHistory() {
+			const modal = document.getElementById('quizHistoryModal');
+			modal.classList.add('active');
+			
+			try {
+				const res = await fetch(`/api/quizzes/history/${courseId}`, { credentials: 'include' });
+				const data = await res.json();
+				
+				if (!data.success || data.history.length === 0) {
+					document.getElementById('quizHistoryContent').innerHTML = `
+						<div class="empty-state">
+							<div class="empty-state-icon">📝</div>
+							<p>Du hast noch kein Quiz für diesen Kurs absolviert.</p>
+							<p style="color: var(--muted); font-size: 0.9rem;">Klicke auf "Quiz starten" um dein erstes Quiz zu machen!</p>
+						</div>
+					`;
+					return;
+				}
+				
+				// Render history
+				const historyHtml = data.history.map(item => {
+					const isPassed = item.passed === 1;
+					const hasSubmitted = item.submitted_at !== null;
+					const score = item.score || 0;
+					
+					// Format date
+					const date = new Date(item.created_at);
+					const dateStr = date.toLocaleDateString('de-DE', { 
+						day: '2-digit', 
+						month: '2-digit', 
+						year: 'numeric',
+						hour: '2-digit',
+						minute: '2-digit'
+					});
+					
+					// Parse feedback if available
+					let feedback = null;
+					if (item.feedback) {
+						try {
+							feedback = JSON.parse(item.feedback);
+						} catch (e) {
+							console.error('Error parsing feedback:', e);
+						}
+					}
+					
+					return `
+						<div class="history-item ${isPassed ? 'passed' : 'failed'}">
+							<div class="history-header">
+								<div>
+									<h3 style="margin: 0 0 0.5rem 0;">${item.title}</h3>
+									<p style="color: #6b7280; margin: 0; font-size: 0.9rem;">
+										📅 ${dateStr}
+									</p>
+								</div>
+								${hasSubmitted ? `
+									<div class="history-badge ${isPassed ? 'passed' : 'failed'}">
+										${isPassed ? '✅ Bestanden' : '❌ Nicht bestanden'}
+									</div>
+								` : `
+									<div class="history-badge" style="background: #fef3c7; color: #92400e;">
+										⏳ Nicht abgeschlossen
+									</div>
+								`}
+							</div>
+							
+							${hasSubmitted ? `
+								<div class="history-stats">
+									<div class="stat-box">
+										<div class="stat-label">Punkte</div>
+										<div class="stat-value" style="color: ${isPassed ? 'var(--success)' : '#ef4444'};">
+											${score}%
+										</div>
+									</div>
+									<div class="stat-box">
+										<div class="stat-label">Status</div>
+										<div class="stat-value" style="font-size: 1.2rem;">
+											${isPassed ? '🎉' : '😔'}
+										</div>
+									</div>
+									<div class="stat-box">
+										<div class="stat-label">Versuch</div>
+										<div class="stat-value" style="font-size: 1.2rem;">
+											#${item.attempt_number}
+										</div>
+									</div>
+								</div>
+								
+								${feedback ? `
+									<div style="margin-top: 1.5rem; padding: 1.5rem; background: linear-gradient(135deg, #dbeafe, #e0e7ff); border-radius: 10px;">
+										<h4 style="margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;">
+											🤖 KI-Feedback
+										</h4>
+										<p style="margin: 0 0 1rem 0; line-height: 1.6;">
+											${feedback.message}
+										</p>
+										<div style="background: white; padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+											<strong style="display: block; margin-bottom: 0.5rem;">💡 Tipps:</strong>
+											<ul style="margin: 0.5rem 0 0 0; padding-left: 1.5rem;">
+												${feedback.suggestions.map(tip => `<li style="margin: 0.25rem 0;">${tip}</li>`).join('')}
+											</ul>
+										</div>
+										<div style="background: rgba(255,255,255,0.7); padding: 1rem; border-radius: 8px; margin-top: 0.5rem;">
+											<strong>📈 Nächster Schritt:</strong> ${feedback.next_steps}
+										</div>
+										<div style="background: rgba(255,255,255,0.5); padding: 0.75rem; border-radius: 8px; margin-top: 0.5rem; font-size: 0.9rem;">
+											<strong>🎯 Empfohlene Schwierigkeit:</strong> 
+											${feedback.next_difficulty === 'easy' ? '😊 Einfach' : 
+											feedback.next_difficulty === 'hard' ? '😅 Schwer' : '😐 Mittel'}
+										</div>
+									</div>
+								` : ''}
+							` : `
+								<p style="color: #6b7280; margin-top: 1rem; font-style: italic;">
+									Du hast dieses Quiz noch nicht abgeschlossen.
+								</p>
+							`}
+						</div>
+					`;
+				}).join('');
+				
+				document.getElementById('quizHistoryContent').innerHTML = historyHtml;
+				
+			} catch (err) {
+				console.error('Error loading quiz history:', err);
+				document.getElementById('quizHistoryContent').innerHTML = `
+					<div class="empty-state">
+						<div class="empty-state-icon">❌</div>
+						<p>Fehler beim Laden des Quiz Verlaufs</p>
+					</div>
+				`;
+			}
+		}
+
+		// Close quiz history modal
+		function closeQuizHistory() {
+			const modal = document.getElementById('quizHistoryModal');
+			modal.classList.remove('active');
+		}
+
+		// Close modal when clicking outside
+		document.addEventListener('click', function(event) {
+			const modal = document.getElementById('quizHistoryModal');
+			if (event.target === modal) {
+				closeQuizHistory();
+			}
+		});
 	</script>
 </body>
 
