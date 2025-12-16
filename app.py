@@ -471,12 +471,13 @@ def init_db():
 			user_id INTEGER NOT NULL,
 			title TEXT NOT NULL,
 			questions_json TEXT NOT NULL,
+			attempt_number INTEGER DEFAULT 1,
 			created_at TEXT NOT NULL,
 			FOREIGN KEY (course_id) REFERENCES courses(id),
 			FOREIGN KEY (user_id) REFERENCES users(id)
 		)
 	''')
-	
+
 	# Quiz answers table
 	cursor.execute('''
 		CREATE TABLE IF NOT EXISTS quiz_answers (
@@ -486,7 +487,7 @@ def init_db():
 			answers_json TEXT NOT NULL,
 			score INTEGER NOT NULL,
 			passed INTEGER NOT NULL,
-            feedback TEXT,
+			feedback TEXT,
 			submitted_at TEXT NOT NULL,
 			FOREIGN KEY (quiz_id) REFERENCES quizzes(id),
 			FOREIGN KEY (user_id) REFERENCES users(id)
