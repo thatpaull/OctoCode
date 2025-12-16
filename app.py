@@ -1779,6 +1779,118 @@ WICHTIG:
 		traceback.print_exc()
 		return self._get_fallback_quiz()
 
+@app.route('/api/quizzes/<quiz_id>', methods=['GET'])
+def get_quiz(quiz_id):
+	"""Get or generate a NEW quiz for a course"""
+	if 'user_id' not in session:
+		return jsonify({'success': False, 'message': 'Not authenticated'}), 401
+	
+	try:
+		print(f"🎓 Quiz request received: {quiz_id}")
+		
+		# Extract course_id from quiz_id (format: quiz_1)
+		course_id = int(quiz_id.replace('quiz_', ''))
+		
+		# Get parameters from query string
+		num_questions = int(request.args.get('count', 10))
+		difficulty = request.args.get('difficulty', 'medium')
+		
+		print(f"📚 Course ID: {course_id}, Questions: {num_questions}, Difficulty: {difficulty}")
+		
+		db = get_db()
+		
+		# Get course info
+		course = db.execute('SELECT * FROM courses WHERE id = ?', (course_id,)).fetchone()
+		
+		if not course:
+			db.close()
+			print(f"❌ Course not found: {course_id}")
+			return jsonify({'success': False, 'message': 'Course not found'}), 404
+		
+		course_dict = safe_dict(course)
+		
+		# If adaptive difficulty, calculate based on history
+		if difficulty == 'adaptive':
+			# Get last quiz performance
+			last_quiz = db.execute('''
+				SELECT qa.score FROM quiz_answers qa
+				JOIN quizzes q ON qa.quiz_id = q.id
+				WHERE q.course_id = ? AND q.user_id = ?
+				ORDER BY qa.submitted_at DESC
+				LIMIT 1
+			''', (course_id, session['user_id'])).fetchone()
+			
+			if last_quiz:
+				score = last_quiz['score']
+				if score >= 80:
+					difficulty = 'hard'
+					print(f"🤖 AI chose: HARD (last score: {score}%)")
+				elif score >= 60:
+					difficulty = 'medium'
+					print(f"🤖 AI chose: MEDIUM (last score: {score}%)")
+				else:
+					difficulty = 'easy'
+					print(f"🤖 AI chose: EASY (last score: {score}%)")
+			else:
+				difficulty = 'medium'
+				print(f"🤖 AI chose: MEDIUM (first attempt)")
+		
+		# Count how many attempts user has made
+		attempt_count = db.execute('''
+			SELECT COUNT(*) as count FROM quizzes 
+			WHERE course_id = ? AND user_id = ?
+		''', (course_id, session['user_id'])).fetchone()['count']
+		
+		new_attempt_number = attempt_count + 1
+		
+		# Generate new quiz using AI
+		print(f"🤖 Generating quiz attempt #{new_attempt_number}")
+		generator = QuizGenerator(
+			course_title=course_dict['title'],
+			course_description=course_dict['description']
+		)
+		
+		quiz_data = generator.generate_quiz(
+			num_questions=num_questions,
+			user_id=session['user_id'],
+			difficulty=difficulty
+		)
+		
+		# Save NEW quiz to database
+		cursor = db.execute('''
+			INSERT INTO quizzes (course_id, user_id, title, questions_json, attempt_number, created_at)
+			VALUES (?, ?, ?, ?, ?, datetime('now'))
+		''', (
+			course_id,
+			session['user_id'],
+			f"Quiz: {course_dict['title']} - Versuch {new_attempt_number}",
+			json.dumps(quiz_data, ensure_ascii=False),
+			new_attempt_number
+		))
+		new_quiz_id = cursor.lastrowid
+		db.commit()
+		db.close()
+		
+		print(f"✅ Quiz #{new_attempt_number} generated ({num_questions} questions, {difficulty})")
+		
+		return jsonify({
+			'success': True,
+			'quiz': {
+				'id': f'quiz_{course_id}_{new_quiz_id}',
+				'db_id': new_quiz_id,
+				'title': f"Quiz: {course_dict['title']} - Versuch {new_attempt_number}",
+				'attempt_number': new_attempt_number,
+				'difficulty': difficulty,
+				'questions': quiz_data['questions']
+			}
+		}), 200
+		
+	except Exception as e:
+		print(f"❌ Get quiz error: {e}")
+		import traceback
+		traceback.print_exc()
+		return jsonify({'success': False, 'message': str(e)}), 500
+
 
 @app.route('/api/quizzes/<quiz_id>/submit', methods=['POST'])
 def submit_quiz(quiz_id):
