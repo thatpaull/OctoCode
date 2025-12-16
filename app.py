@@ -1672,188 +1672,112 @@ class QuizGenerator:
 		self.course_title = course_title
 		self.course_description = course_description
 	
-	def generate_quiz(self, num_questions=5):
-		"""Generate quiz using Groq AI"""
-		try:
-			prompt = f"""Du bist ein Experte für Bildungsinhalte. Erstelle ein Quiz mit {num_questions} Fragen zum Thema: "{self.course_title}".
+def generate_quiz(self, num_questions=10, user_id=None, difficulty="medium"):
+	"""Generate quiz using Groq AI with randomization and difficulty"""
+	try:
+		# Add randomization seed based on timestamp and user_id
+		import time
+		seed = int(time.time() * 1000) + (user_id or 0)
+		
+		# Difficulty descriptions for AI
+		difficulty_map = {
+			"easy": "einfach - Grundlegende Konzepte, direkte Fragen",
+			"medium": "mittel - Anwendung von Konzepten, einige Denkaufgaben",
+			"hard": "schwer - Komplexe Probleme, fortgeschrittene Konzepte",
+			"adaptive": "gemischt - Verschiedene Schwierigkeitsgrade"
+		}
+		
+		difficulty_desc = difficulty_map.get(difficulty, difficulty_map["medium"])
+		
+		prompt = f"""Du bist ein Experte für Bildungsinhalte. Erstelle ein EINZIGARTIGES Quiz mit {num_questions} Fragen zum Thema: "{self.course_title}".
 
 Kurs-Beschreibung: {self.course_description}
+
+Schwierigkeitsgrad: {difficulty_desc}
+Randomization Seed: {seed}
 
 Erstelle ein JSON-Objekt mit folgendem Format:
 {{
     "questions": [
         {{
             "id": 1,
+            "type": "multiple_choice",
+            "difficulty": "easy",
             "question": "Frage Text hier?",
             "options": ["Option A", "Option B", "Option C", "Option D"],
             "correct_answer": 0,
             "explanation": "Erklärung warum diese Antwort richtig ist"
+        }},
+        {{
+            "id": 2,
+            "type": "code",
+            "difficulty": "medium",
+            "question": "Finde und korrigiere den Fehler im folgenden Code:",
+            "code": "def add(a, b):\\n    return a - b",
+            "options": ["return a + b", "return a * b", "return a / b", "return a - b"],
+            "correct_answer": 0,
+            "explanation": "Die Funktion sollte addieren, nicht subtrahieren"
         }}
     ]
 }}
 
 WICHTIG:
-- Erstelle genau {num_questions} Fragen
-- Multiple-Choice Fragen mit 4 Optionen
-- Fragen sollen verschiedene Schwierigkeitsgrade haben
-- Explanationen sollen lehrreich sein
+- Erstelle genau {num_questions} VERSCHIEDENE Fragen
+- Passe die Schwierigkeit an: {difficulty_desc}
+- 60% Multiple-Choice Fragen (type: "multiple_choice")
+- 40% Code-Übungen (type: "code")
+- Jede Frage sollte ein "difficulty" Feld haben: "easy", "medium", oder "hard"
+- Für Code-Fragen: füge ein "code" Feld mit dem Code-Beispiel hinzu
+- Nutze den Seed {seed} um UNTERSCHIEDLICHE Fragen zu generieren
+- KEINE sich wiederholenden Fragen
+- Explanationen sollen lehrreich und detailliert sein
 - Alle Texte auf Deutsch
 - NUR JSON zurückgeben, keine zusätzlichen Texte
 """
 
-			response = groq_client.chat.completions.create(
-				model="llama-3.3-70b-versatile",
-				messages=[
-					{
-						"role": "system",
-						"content": "Du bist ein professioneller Quiz-Generator für Bildungszwecke. Antworte NUR mit validem JSON."
-					},
-					{
-						"role": "user",
-						"content": prompt
-					}
-				],
-				temperature=0.7,
-				max_tokens=2000
-			)
-
-			response_text = response.choices[0].message.content.strip()
-			
-			# Remove markdown code blocks if present
-			if response_text.startswith('```json'):
-				response_text = response_text[7:]
-			if response_text.startswith('```'):
-				response_text = response_text[3:]
-			if response_text.endswith('```'):
-				response_text = response_text[:-3]
-			response_text = response_text.strip()
-
-			quiz_data = json.loads(response_text)
-			return quiz_data
-
-		except Exception as e:
-			print(f"❌ Quiz generation error: {e}")
-			import traceback
-			traceback.print_exc()
-			# Fallback quiz if AI fails
-			return self._get_fallback_quiz()
-	
-	def _get_fallback_quiz(self):
-		"""Fallback quiz if AI generation fails"""
-		return {
-			"questions": [
+		response = groq_client.chat.completions.create(
+			model="llama-3.3-70b-versatile",
+			messages=[
 				{
-					"id": 1,
-					"question": f"Was ist das Hauptthema von {self.course_title}?",
-					"options": [
-						"Programmierung",
-						"Mathematik",
-						"Geschichte",
-						"Kunst"
-					],
-					"correct_answer": 0,
-					"explanation": "Dieser Kurs konzentriert sich auf Programmierung."
+					"role": "system",
+					"content": "Du bist ein professioneller Quiz-Generator. Generiere IMMER unterschiedliche Fragen. Antworte NUR mit validem JSON."
 				},
 				{
-					"id": 2,
-					"question": "Welche Fähigkeiten wirst du in diesem Kurs lernen?",
-					"options": [
-						"Grundlegende Konzepte",
-						"Fortgeschrittene Techniken",
-						"Praktische Anwendungen",
-						"Alle oben genannten"
-					],
-					"correct_answer": 3,
-					"explanation": "Der Kurs deckt alle diese Bereiche ab."
+					"role": "user",
+					"content": prompt
 				}
-			]
-		}
-
-
-@app.route('/api/quizzes/<quiz_id>', methods=['GET'])
-def get_quiz(quiz_id):
-	"""Get or generate a quiz for a course"""
-	if 'user_id' not in session:
-		return jsonify({'success': False, 'message': 'Not authenticated'}), 401
-	
-	try:
-		print(f"🎓 Quiz request received: {quiz_id}")
-		
-		# Extract course_id from quiz_id (format: quiz_1)
-		course_id = int(quiz_id.replace('quiz_', ''))
-		print(f"📚 Course ID: {course_id}")
-		
-		db = get_db()
-		
-		# Check if quiz already exists for this user
-		existing_quiz = db.execute('''
-			SELECT * FROM quizzes 
-			WHERE course_id = ? AND user_id = ?
-		''', (course_id, session['user_id'])).fetchone()
-		
-		if existing_quiz:
-			print(f"✅ Found existing quiz")
-			# Return existing quiz
-			quiz_data = json.loads(existing_quiz['questions_json'])
-			db.close()
-			
-			return jsonify({
-				'success': True,
-				'quiz': {
-					'id': quiz_id,
-					'title': existing_quiz['title'],
-					'questions': quiz_data['questions']
-				}
-			}), 200
-		
-		# Get course info
-		course = db.execute('SELECT * FROM courses WHERE id = ?', (course_id,)).fetchone()
-		
-		if not course:
-			db.close()
-			print(f"❌ Course not found: {course_id}")
-			return jsonify({'success': False, 'message': 'Course not found'}), 404
-		
-		course_dict = safe_dict(course)
-		
-		# Generate new quiz using AI
-		print(f"🤖 Generating new quiz for: {course_dict['title']}")
-		generator = QuizGenerator(
-			course_title=course_dict['title'],
-			course_description=course_dict['description']
+			],
+			temperature=0.9,
+			max_tokens=4000,
+			top_p=0.95
 		)
+
+		response_text = response.choices[0].message.content.strip()
 		
-		quiz_data = generator.generate_quiz(num_questions=5)
+		# Remove markdown code blocks if present
+		if response_text.startswith('```json'):
+			response_text = response_text[7:]
+		if response_text.startswith('```'):
+			response_text = response_text[3:]
+		if response_text.endswith('```'):
+			response_text = response_text[:-3]
+		response_text = response_text.strip()
+
+		quiz_data = json.loads(response_text)
 		
-		# Save quiz to database
-		db.execute('''
-			INSERT INTO quizzes (course_id, user_id, title, questions_json, created_at)
-			VALUES (?, ?, ?, ?, datetime('now'))
-		''', (
-			course_id,
-			session['user_id'],
-			f"Quiz: {course_dict['title']}",
-			json.dumps(quiz_data, ensure_ascii=False)
-		))
-		db.commit()
-		db.close()
+		# Add unique IDs and ensure difficulty field exists
+		for i, question in enumerate(quiz_data['questions']):
+			question['id'] = i + 1
+			if 'difficulty' not in question:
+				question['difficulty'] = difficulty
 		
-		print(f"✅ Quiz generated and saved!")
-		
-		return jsonify({
-			'success': True,
-			'quiz': {
-				'id': quiz_id,
-				'title': f"Quiz: {course_dict['title']}",
-				'questions': quiz_data['questions']
-			}
-		}), 200
-		
+		return quiz_data
+
 	except Exception as e:
-		print(f"❌ Get quiz error: {e}")
+		print(f"❌ Quiz generation error: {e}")
 		import traceback
 		traceback.print_exc()
-		return jsonify({'success': False, 'message': str(e)}), 500
+		return self._get_fallback_quiz()
 
 
 @app.route('/api/quizzes/<quiz_id>/submit', methods=['POST'])
