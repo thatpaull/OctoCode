@@ -486,6 +486,7 @@ def init_db():
 			answers_json TEXT NOT NULL,
 			score INTEGER NOT NULL,
 			passed INTEGER NOT NULL,
+            feedback TEXT,
 			submitted_at TEXT NOT NULL,
 			FOREIGN KEY (quiz_id) REFERENCES quizzes(id),
 			FOREIGN KEY (user_id) REFERENCES users(id)
