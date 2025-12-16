@@ -1779,6 +1779,78 @@ WICHTIG:
 		traceback.print_exc()
 		return self._get_fallback_quiz()
 
+def generate_ai_feedback(score, correct, total, difficulty, course_title):
+	"""Generate personalized AI feedback based on quiz performance"""
+	try:
+		prompt = f"""Du bist ein erfahrener Programmierlehrer. Ein Schüler hat gerade ein Quiz zum Thema "{course_title}" abgeschlossen.
+
+Ergebnisse:
+- Punkte: {score}%
+- Richtig: {correct} von {total}
+- Schwierigkeitsgrad: {difficulty}
+
+Erstelle personalisiertes Feedback mit:
+1. Lob für gute Leistung oder Ermutigung
+2. Konkrete Verbesserungsvorschläge
+3. Empfehlung für nächste Schritte
+4. Vorschlag für Schwierigkeitsgrad beim nächsten Quiz
+
+Antworte NUR mit JSON:
+{{
+  "message": "Dein Feedback hier (2-3 Sätze)",
+  "suggestions": ["Tipp 1", "Tipp 2"],
+  "next_difficulty": "easy/medium/hard",
+  "next_steps": "Was der Schüler als nächstes tun sollte"
+}}
+"""
+
+		response = groq_client.chat.completions.create(
+			model="llama-3.3-70b-versatile",
+			messages=[
+				{
+					"role": "system",
+					"content": "Du bist ein motivierender Programmierlehrer. Gib konstruktives Feedback. Antworte NUR mit JSON."
+				},
+				{
+					"role": "user",
+					"content": prompt
+				}
+			],
+			temperature=0.7,
+			max_tokens=500
+		)
+
+		response_text = response.choices[0].message.content.strip()
+		response_text = response_text.replace('```json', '').replace('```', '').strip()
+		
+		feedback_data = json.loads(response_text)
+		return json.dumps(feedback_data, ensure_ascii=False)
+
+	except Exception as e:
+		print(f"❌ AI feedback error: {e}")
+		# Fallback feedback
+		if score >= 80:
+			return json.dumps({
+				"message": "Ausgezeichnet! Du hast das Quiz sehr gut gemeistert!",
+				"suggestions": ["Versuche den nächsten Schwierigkeitsgrad"],
+				"next_difficulty": "hard",
+				"next_steps": "Fordere dich mit schwierigeren Aufgaben heraus"
+			}, ensure_ascii=False)
+		elif score >= 60:
+			return json.dumps({
+				"message": "Gut gemacht! Du hast bestanden!",
+				"suggestions": ["Wiederhole die schwierigeren Themen"],
+				"next_difficulty": "medium",
+				"next_steps": "Übe weiter um sicherer zu werden"
+			}, ensure_ascii=False)
+		else:
+			return json.dumps({
+				"message": "Nicht aufgeben! Übung macht den Meister!",
+				"suggestions": ["Schaue die Videos nochmal an", "Beginne mit einfacheren Aufgaben"],
+				"next_difficulty": "easy",
+				"next_steps": "Wiederhole die Grundlagen"
+			}, ensure_ascii=False)
+   
 @app.route('/api/quizzes/<quiz_id>', methods=['GET'])
 def get_quiz(quiz_id):
 	"""Get or generate a NEW quiz for a course"""
@@ -1970,6 +2042,25 @@ def submit_quiz(quiz_id):
 		
 		db.close()
 		
+        # Generate AI feedback based on performance
+		feedback = generate_ai_feedback(
+			score=score,
+			correct=correct,
+			total=total,
+			difficulty=quiz.get('difficulty', 'medium'),
+			course_title=course_dict['title']
+		)
+		
+		# Save feedback to database
+		db.execute('''
+			UPDATE quiz_answers 
+			SET feedback = ? 
+			WHERE quiz_id = ? AND user_id = ?
+		''', (feedback, db_quiz_id, session['user_id']))
+		db.commit()
+		
+		db.close()
+		
 		return jsonify({
 			'success': True,
 			'score': score,
@@ -1977,7 +2068,9 @@ def submit_quiz(quiz_id):
 			'total': total,
 			'passed': passed,
 			'passing_score': 60,
-			'results': results
+			'results': results,
+			'attempt_number': quiz['attempt_number'],
+			'ai_feedback': feedback  # Add AI feedback
 		}), 200
 		
 	except Exception as e:
