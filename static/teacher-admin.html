@@ -50,6 +50,22 @@
                     </svg>
                     <span>Aufgaben</span>
                 </button>
+                <button class="nav-item" data-tab="pdf-quizzes">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    <span>PDF-Quizzes</span>
+                </button>
+                <button class="nav-item" data-tab="quiz-results">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 11H3v2h6m-6 6h6v2H3m10 2l-1.5-1.5L10 21v-6l1.5 1.5L13 15m6.36-4L12 3.64 4.64 11 12 18.36 19.36 11M12 6.73l4.27 4.27-4.27 4.27-4.27-4.27"></path>
+                    </svg>
+                    <span>Quiz-Ergebnisse</span>
+                </button>
                 <button class="nav-item" onclick="window.location.href='teacher-einstellungen.html'">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"></circle>
@@ -100,6 +116,7 @@
             </header>
 
             <div id="contentArea">
+                <!-- DASHBOARD TAB -->
                 <div id="dashboard-content" class="tab-content active">
                     <div class="stats-grid">
                         <div class="stat-card purple">
@@ -181,6 +198,7 @@
                     </div>
                 </div>
 
+                <!-- STUDENTS TAB -->
                 <div id="students-content" class="tab-content">
                     <div class="content-header">
                         <h2>Schülerverwaltung</h2>
@@ -204,6 +222,7 @@
                     <div class="students-grid" id="studentsGrid"></div>
                 </div>
 
+                <!-- COURSES TAB -->
                 <div id="courses-content" class="tab-content">
                     <div class="content-header">
                         <h2>Kursverwaltung</h2>
@@ -218,6 +237,7 @@
                     <div class="courses-list" id="coursesList"></div>
                 </div>
 
+                <!-- TASKS TAB -->
                 <div id="tasks-content" class="tab-content">
                     <div class="content-header">
                         <h2>Aufgabenverwaltung</h2>
@@ -247,10 +267,89 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- PDF QUIZZES TAB -->
+                <div id="pdf-quizzes-content" class="tab-content">
+                    <div class="content-header">
+                        <h2>PDF-basierte Quizzes</h2>
+                        <button class="btn-primary" onclick="openPDFUploadModal()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            PDF hochladen & Quiz generieren
+                        </button>
+                    </div>
+
+                    <div class="courses-list" id="pdfQuizzesContainer">
+                        <!-- PDF quizzes will be loaded here -->
+                        <div style="text-align: center; padding: 40px; color: #666;">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 16px; opacity: 0.3;">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            <h3 style="margin: 0; font-size: 18px;">Lade PDF-Quizzes...</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QUIZ RESULTS TAB -->
+                <div id="quiz-results-content" class="tab-content">
+                    <div class="content-header">
+                        <h2>Quiz-Ergebnisse Übersicht</h2>
+                        <div class="header-actions">
+                            <div class="search-box">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <path d="m21 21-4.35-4.35"></path>
+                                </svg>
+                                <input type="text" id="quizSearch" placeholder="Suchen..." onkeyup="filterQuizResults()">
+                            </div>
+                            <button class="btn-secondary" onclick="loadQuizResults().then(() => renderQuizResults())">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="23 4 23 10 17 10"></polyline>
+                                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                                </svg>
+                                Aktualisieren
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="tasks-table-container">
+                        <table class="tasks-table">
+                            <thead>
+                                <tr>
+                                    <th>Schüler</th>
+                                    <th>Kurs & Quiz</th>
+                                    <th>Versuch</th>
+                                    <th>Punkte</th>
+                                    <th>Status</th>
+                                    <th>Datum</th>
+                                    <th>KI-Feedback</th>
+                                    <th>Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody id="quizResultsTable">
+                                <tr>
+                                    <td colspan="8" style="text-align: center; padding: 40px; color: #666;">
+                                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 16px; opacity: 0.3;">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                        </svg>
+                                        <h3 style="margin: 0; font-size: 18px;">Lade Quiz-Ergebnisse...</h3>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
 
+    <!-- MODAL -->
     <div id="modal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">

@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>Lehrer-Aufgaben | OctoCode</title>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="dashboard.css" />
+	<style>
+		.assignments-container {
+			padding: 20px;
+		}
+
+		.assignments-header {
+			margin-bottom: 32px;
+		}
+
+		.assignments-header h1 {
+			font-size: 32px;
+			font-weight: 800;
+			color: var(--text);
+			margin-bottom: 8px;
+		}
+
+		.assignments-header .subtitle {
+			color: var(--muted);
+			font-size: 16px;
+		}
+
+		.assignments-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+			gap: 20px;
+		}
+
+		.assignment-card {
+			background: var(--surface);
+			border-radius: var(--radius);
+			box-shadow: var(--shadow);
+			overflow: hidden;
+			transition: all 0.3s;
+			cursor: pointer;
+		}
+
+		.assignment-card:hover {
+			transform: translateY(-4px);
+			box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+		}
+
+		.assignment-card-header {
+			padding: 20px;
+			border-bottom: 2px solid #f1f5f9;
+		}
+
+		.assignment-badge {
+			display: inline-block;
+			padding: 6px 12px;
+			border-radius: 20px;
+			font-size: 12px;
+			font-weight: 700;
+			margin-bottom: 12px;
+		}
+
+		.assignment-title {
+			font-size: 18px;
+			font-weight: 700;
+			color: var(--text);
+			margin-bottom: 8px;
+		}
+
+		.assignment-meta {
+			display: flex;
+			gap: 16px;
+			font-size: 13px;
+			color: var(--muted);
+		}
+
+		.assignment-meta-item {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+		}
+
+		.assignment-card-body {
+			padding: 20px;
+		}
+
+		.assignment-status {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			padding: 12px;
+			border-radius: 10px;
+			font-weight: 600;
+			margin-bottom: 16px;
+		}
+
+		.assignment-status.completed {
+			background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+			color: #065f46;
+		}
+
+		.assignment-status.pending {
+			background: linear-gradient(135deg, #fef3c7, #fde68a);
+			color: #78350f;
+		}
+
+		.assignment-btn {
+			width: 100%;
+			padding: 14px;
+			border-radius: 12px;
+			border: none;
+			font-weight: 700;
+			font-size: 14px;
+			cursor: pointer;
+			transition: all 0.2s;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 8px;
+		}
+
+		.assignment-btn.primary {
+			background: linear-gradient(135deg, #667eea, #764ba2);
+			color: white;
+		}
+
+		.assignment-btn.primary:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+		}
+
+		.assignment-btn.secondary {
+			background: #f1f5f9;
+			color: #475569;
+		}
+
+		.assignment-btn.secondary:hover {
+			background: #e2e8f0;
+		}
+
+		.score-display {
+			font-size: 28px;
+			font-weight: 800;
+			text-align: center;
+			margin: 16px 0;
+		}
+
+		.empty-state {
+			text-align: center;
+			padding: 80px 20px;
+			color: var(--muted);
+		}
+
+		.empty-state svg {
+			margin-bottom: 24px;
+			opacity: 0.3;
+		}
+
+		.empty-state h3 {
+			margin: 0;
+			font-size: 24px;
+			color: var(--text);
+		}
+
+		.empty-state p {
+			margin: 12px 0 0 0;
+			font-size: 16px;
+		}
+
+		.loading-overlay {
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background: rgba(0, 0, 0, 0.5);
+			backdrop-filter: blur(4px);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			z-index: 9999;
+		}
+
+		.loading-content {
+			background: white;
+			border-radius: 20px;
+			padding: 40px;
+			text-align: center;
+			max-width: 400px;
+		}
+
+		.loading-spinner {
+			width: 60px;
+			height: 60px;
+			border: 4px solid #f1f5f9;
+			border-top-color: #667eea;
+			border-radius: 50%;
+			animation: spin 1s linear infinite;
+			margin: 0 auto 24px;
+		}
+
+		@keyframes spin {
+			to { transform: rotate(360deg); }
+		}
+
+		.loading-text {
+			font-size: 18px;
+			font-weight: 700;
+			color: var(--text);
+			margin-bottom: 8px;
+		}
+
+		.loading-subtext {
+			font-size: 14px;
+			color: var(--muted);
+		}
+	</style>
+</head>
+<body>
+<div class="app">
+	<!-- SIDEBAR -->
+	<aside class="sidebar" aria-label="Navbar">
+		<div class="brand">
+			<div class="logo">OC</div>
+			<div class="brand-text">
+				<div class="name">OctoCode</div>
+				<div class="sub">Premium</div>
+			</div>
+		</div>
+
+		<nav class="nav">
+			<ul>
+				<li class="nav-item" onclick="window.location.href='dashboard.html'">Dashboard</li>
+				<li class="nav-item" onclick="window.location.href='kurse.html'">Kurse</li>
+				<li class="nav-item active" aria-current="page">Aufgaben</li>
+				<li class="nav-item" onclick="window.location.href='ai.html'">AI</li>
+				<li class="nav-item" onclick="window.location.href='freunde.html'">Freunde</li>
+				<li class="nav-item" onclick="window.location.href='einstellungen.html'">Einstellungen</li>
+			</ul>
+		</nav>
+
+		<div class="sidebar-footer">
+			<div class="theme-switch">
+				<label class="switch">
+					<input id="themeToggle" type="checkbox">
+					<span class="slider"></span>
+				</label>
+				<small>Dunkles Thema</small>
+			</div>
+			<div class="profile">
+				<img src="img/kid-avatar.jpg" alt="avatar" id="sidebarAvatar" />
+				<div>
+					<div class="prof-name" id="sidebarName">Schüler</div>
+					<div class="prof-score" id="sidebarPoints">0 Punkte</div>
+				</div>
+			</div>
+		</div>
+	</aside>
+
+	<!-- MAIN -->
+	<main class="main">
+		<div class="assignments-container">
+			<div class="assignments-header">
+				<h1>📝 Lehrer-Aufgaben</h1>
+				<p class="subtitle">Von deinen Lehrern erstellte Quiz und Aufgaben</p>
+			</div>
+
+			<div id="assignmentsGrid" class="assignments-grid">
+				<!-- Loading state -->
+				<div class="empty-state">
+					<div class="loading-spinner"></div>
+					<h3>Lade Aufgaben...</h3>
+				</div>
+			</div>
+		</div>
+	</main>
+</div>
+
+<!-- Loading Overlay (for quiz loading) -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+	<div class="loading-content">
+		<div class="loading-spinner"></div>
+		<div class="loading-text">Quiz wird geladen...</div>
+		<div class="loading-subtext">Bitte warten Sie einen Moment</div>
+	</div>
+</div>
+
+<script>
+let currentUser = null;
+let assignments = [];
+
+// Load user data
+async function loadUserData() {
+	try {
+		const res = await fetch('/api/check-auth', { credentials: 'include' });
+		const data = await res.json();
+
+		if (data.authenticated && data.user.role === 'student') {
+			currentUser = data.user;
+
+			document.getElementById('sidebarName').textContent = currentUser.name;
+			document.getElementById('sidebarPoints').textContent = `${currentUser.points || 0} Punkte`;
+
+			const avatarUrl = currentUser.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(currentUser.name)}`;
+			document.getElementById('sidebarAvatar').src = avatarUrl;
+
+			await loadAssignments();
+		} else {
+			alert('Sie sind nicht als Schüler angemeldet!');
+			window.location.href = '/';
+		}
+	} catch (err) {
+		console.error('❌ Auth error:', err);
+		window.location.href = '/';
+	}
+}
+
+// Load assignments
+async function loadAssignments() {
+	try {
+		console.log('📚 Loading teacher assignments...');
+		const res = await fetch('/api/student/teacher-assignments', { credentials: 'include' });
+
+		if (!res.ok) {
+			throw new Error('Failed to load assignments');
+		}
+
+		const data = await res.json();
+		assignments = data.assignments || [];
+
+		console.log('✅ Loaded assignments:', assignments.length);
+		renderAssignments();
+	} catch (err) {
+		console.error('❌ Load assignments error:', err);
+		document.getElementById('assignmentsGrid').innerHTML = `
+			<div class="empty-state">
+				<svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+					<line x1="12" y1="9" x2="12" y2="13"></line>
+					<line x1="12" y1="17" x2="12.01" y2="17"></line>
+				</svg>
+				<h3>Fehler beim Laden</h3>
+				<p>Bitte versuchen Sie es später erneut</p>
+			</div>
+		`;
+	}
+}
+
+// Render assignments
+function renderAssignments() {
+	const grid = document.getElementById('assignmentsGrid');
+
+	if (assignments.length === 0) {
+		grid.innerHTML = `
+			<div class="empty-state">
+				<svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+					<polyline points="14 2 14 8 20 8"></polyline>
+					<line x1="16" y1="13" x2="8" y2="13"></line>
+					<line x1="16" y1="17" x2="8" y2="17"></line>
+					<polyline points="10 9 9 9 8 9"></polyline>
+				</svg>
+				<h3>Keine Aufgaben verfügbar</h3>
+				<p>Deine Lehrer haben noch keine Quiz-Aufgaben erstellt</p>
+			</div>
+		`;
+		return;
+	}
+
+	grid.innerHTML = assignments.map(assignment => {
+		const isCompleted = assignment.completed;
+		const statusClass = isCompleted ? 'completed' : 'pending';
+		const statusIcon = isCompleted ? '✅' : '⏳';
+		const statusText = isCompleted ? `Abgeschlossen: ${assignment.score}%` : 'Noch nicht abgeschlossen';
+
+		const badgeColor = assignment.course_color || '#667eea';
+
+		return `
+			<div class="assignment-card" onclick="openAssignment(${assignment.id})">
+				<div class="assignment-card-header">
+					<div class="assignment-badge" style="background-color: ${badgeColor}20; color: ${badgeColor};">
+						📚 ${assignment.course_title}
+					</div>
+					<div class="assignment-title">${assignment.title}</div>
+					<div class="assignment-meta">
+						<div class="assignment-meta-item">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+								<circle cx="12" cy="8" r="4"></circle>
+							</svg>
+							${assignment.teacher_name}
+						</div>
+						<div class="assignment-meta-item">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<circle cx="12" cy="12" r="10"></circle>
+								<polyline points="12 6 12 12 16 14"></polyline>
+							</svg>
+							${formatDate(assignment.created_at)}
+						</div>
+					</div>
+				</div>
+				<div class="assignment-card-body">
+					<div class="assignment-status ${statusClass}">
+						<span style="font-size: 20px;">${statusIcon}</span>
+						<span>${statusText}</span>
+					</div>
+					${isCompleted ? `
+						<div class="score-display" style="color: ${assignment.passed ? '#10b981' : '#ef4444'};">
+							${assignment.score}%
+						</div>
+						<button class="assignment-btn secondary" onclick="event.stopPropagation(); viewResults(${assignment.id})">
+							📊 Ergebnisse ansehen
+						</button>
+					` : `
+						<button class="assignment-btn primary" onclick="event.stopPropagation(); startAssignment(${assignment.id})">
+							▶️ Quiz starten
+						</button>
+					`}
+				</div>
+			</div>
+		`;
+	}).join('');
+}
+
+// Start assignment
+async function startAssignment(assignmentId) {
+	// Show loading overlay
+	const overlay = document.getElementById('loadingOverlay');
+	overlay.style.display = 'flex';
+
+	try {
+		const res = await fetch(`/api/student/assignment/${assignmentId}`, { credentials: 'include' });
+		const data = await res.json();
+
+		if (!data.success) {
+			throw new Error(data.message);
+		}
+
+		// Store quiz data in sessionStorage
+		sessionStorage.setItem('currentQuiz', JSON.stringify({
+			quiz_id: data.quiz.id,
+			db_id: assignmentId,
+			title: data.quiz.title,
+			course_title: data.quiz.course_title,
+			questions: data.quiz.questions,
+			isAssignment: true
+		}));
+
+		// Redirect to quiz page
+		window.location.href = 'quiz.html';
+
+	} catch (error) {
+		console.error('❌ Start assignment error:', error);
+		alert('Fehler beim Laden des Quiz: ' + error.message);
+		overlay.style.display = 'none';
+	}
+}
+
+// View assignment results
+function viewResults(assignmentId) {
+	const assignment = assignments.find(a => a.id === assignmentId);
+	if (!assignment) return;
+
+	alert(`Quiz: ${assignment.title}\nPunkte: ${assignment.score}%\nStatus: ${assignment.passed ? 'Bestanden ✅' : 'Nicht bestanden ❌'}`);
+}
+
+// Open assignment (navigate to quiz)
+function openAssignment(assignmentId) {
+	const assignment = assignments.find(a => a.id === assignmentId);
+	if (!assignment) return;
+
+	if (assignment.completed) {
+		viewResults(assignmentId);
+	} else {
+		startAssignment(assignmentId);
+	}
+}
+
+// Format date
+function formatDate(dateString) {
+	if (!dateString) return 'Kürzlich';
+	const date = new Date(dateString);
+	const now = new Date();
+	const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+
+	if (diffDays === 0) return 'Heute';
+	if (diffDays === 1) return 'Gestern';
+	if (diffDays < 7) return `vor ${diffDays} Tagen`;
+	return date.toLocaleDateString('de-DE');
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+	console.log('🚀 Initializing assignments page...');
+	loadUserData();
+});
+</script>
+</body>
+</html>
