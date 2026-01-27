@@ -1,15 +1,12 @@
 <!DOCTYPE html>
 <html lang="de">
-
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width,initial-scale=1" />
-		<title>Quiz - OctoCode</title>
-		<link
-			href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap"
-			rel="stylesheet">
-		<link rel="stylesheet" href="dashboard.css" />
-		<style>
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>Quiz - OctoCode</title>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="dashboard.css" />
+	<style>
 		.quiz-container {
 			max-width: 900px;
 			margin: 0 auto;
@@ -98,16 +95,6 @@
 			background: linear-gradient(135deg, #dbeafe, #e0e7ff);
 		}
 
-		.option.correct {
-			border-color: var(--success);
-			background: #f0fdf4;
-		}
-
-		.option.wrong {
-			border-color: #ef4444;
-			background: #fef2f2;
-		}
-
 		.quiz-nav {
 			display: flex;
 			gap: 1rem;
@@ -176,103 +163,115 @@
 			margin-top: 1rem;
 			border-left: 4px solid var(--accent);
 		}
+
+		@keyframes spin {
+			0% { transform: rotate(0deg); }
+			100% { transform: rotate(360deg); }
+		}
 	</style>
-	</head>
+</head>
+<body>
+	<div class="app">
+		<!-- SIDEBAR -->
+		<aside class="sidebar">
+			<div class="brand">
+				<div class="logo">OC</div>
+				<div class="brand-text">
+					<div class="name">OctoCode</div>
+					<div class="sub">Premium</div>
+				</div>
+			</div>
 
-	<body>
-		<div class="app">
-			<!-- SIDEBAR -->
-			<aside class="sidebar">
-				<div class="brand">
-					<div class="logo">OC</div>
-					<div class="brand-text">
-						<div class="name">OctoCode</div>
-						<div class="sub">Premium</div>
+			<nav class="nav">
+				<ul>
+					<li class="nav-item"><a href="/dashboard.html" style="color: inherit; text-decoration: none;">Dashboard</a></li>
+					<li class="nav-item active"><a href="/kurse.html" style="color: inherit; text-decoration: none;">Kurse</a></li>
+					<li class="nav-item"><a href="/bewertungen.html" style="color: inherit; text-decoration: none;">Aufgaben</a></li>
+					<li class="nav-item"><a href="/ai.html" style="color: inherit; text-decoration: none;">AI</a></li>
+					<li class="nav-item">Freunde</li>
+					<li class="nav-item">Einstellungen</li>
+				</ul>
+			</nav>
+
+			<div class="sidebar-footer">
+				<div class="profile">
+					<img id="sidebarAvatar" src="img/kid-avatar.jpg" alt="avatar" />
+					<div>
+						<div class="prof-name" id="sidebarName">User</div>
+					</div>
+				</div>
+			</div>
+		</aside>
+
+		<!-- MAIN -->
+		<main class="main">
+			<div class="quiz-container">
+				<button class="btn-back" onclick="goBack()"
+					style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: white; border: 2px solid #e5e7eb; border-radius: 10px; cursor: pointer; font-weight: 600; margin-bottom: 1.5rem;">
+					← Zurück
+				</button>
+
+				<!-- Quiz Header -->
+				<div class="quiz-header" id="quizHeader">
+					<h1>🎓 Quiz</h1>
+					<p>Teste dein Wissen!</p>
+				</div>
+
+				<!-- Progress -->
+				<div class="quiz-progress" id="progressSection" style="display: none;">
+					<div style="display: flex; justify-content: space-between; align-items: center;">
+						<span style="font-weight: 700;">Frage <span id="currentQ">1</span> von <span id="totalQ">0</span></span>
+						<span style="color: var(--muted);" id="progressText">0% abgeschlossen</span>
+					</div>
+					<div class="progress-bar-quiz">
+						<div class="progress-fill-quiz" id="progressFill"></div>
 					</div>
 				</div>
 
-				<nav class="nav">
-					<ul>
-						<li class="nav-item"><a href="/dashboard.html"
-								style="color: inherit; text-decoration: none;">Dashboard</a></li>
-						<li class="nav-item active"><a href="/kurse.html"
-								style="color: inherit; text-decoration: none;">Kurse</a></li>
-						<li class="nav-item">Bewertungen</li>
-						<li class="nav-item"><a href="/ai.html"
-								style="color: inherit; text-decoration: none;">AI</a></li>
-						<li class="nav-item">Freunde</li>
-						<li class="nav-item">Einstellungen</li>
-					</ul>
-				</nav>
+				<!-- Question -->
+				<div id="questionSection" style="display: none;"></div>
 
-				<div class="sidebar-footer">
-					<div class="profile">
-						<img id="sidebarAvatar" src="img/kid-avatar.jpg" alt="avatar" />
-						<div>
-							<div class="prof-name" id="sidebarName">User</div>
-						</div>
-					</div>
-				</div>
-			</aside>
+				<!-- Results -->
+				<div id="resultsSection" style="display: none;"></div>
+			</div>
+		</main>
+	</div>
 
-			<!-- MAIN -->
-			<main class="main">
-				<div class="quiz-container">
-					<button class="btn-back" onclick="goBack()"
-						style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: white; border: 2px solid #e5e7eb; border-radius: 10px; cursor: pointer; font-weight: 600; margin-bottom: 1.5rem;">
-						← Zurück
-					</button>
-
-					<!-- Quiz Header --->
-					<div class="quiz-header" id="quizHeader">
-						<h1>🎓 Quiz</h1>
-						<p>Teste dein Wissen!</p>
-					</div>
-
-					<!-- Progress -->
-					<div class="quiz-progress" id="progressSection" style="display: none;">
-						<div
-							style="display: flex; justify-content: space-between; align-items: center;">
-							<span style="font-weight: 700;">Frage <span id="currentQ">1</span> von
-								<span
-									id="totalQ">0</span></span>
-							<span style="color: var(--muted);" id="progressText">0%
-								abgeschlossen</span>
-						</div>
-						<div class="progress-bar-quiz">
-							<div class="progress-fill-quiz" id="progressFill"></div>
-						</div>
-					</div>
-
-					<!-- Question -->
-					<div id="questionSection" style="display: none;"></div>
-
-					<!-- Results -->
-					<div id="resultsSection" style="display: none;"></div>
-				</div>
-			</main>
-		</div>
-
-		<script>
+	<script>
 let quizData = null;
 let currentQuestionIndex = 0;
 let userAnswers = {};
 let quizId = null;
-let showingResults = false;
-let dbQuizId = null; // Store database quiz ID
+let dbQuizId = null;
+let isTeacherAssignment = false;
+let courseId = null;
 
-// Get quiz ID and parameters
+// Get quiz parameters from URL
 const urlParams = new URLSearchParams(window.location.search);
-quizId = urlParams.get('id');
+const quizIdParam = urlParams.get('id');
+const assignmentIdParam = urlParams.get('assignment_id');
 const questionCount = urlParams.get('count') || 10;
 const difficulty = urlParams.get('difficulty') || 'medium';
 
-if (!quizId) {
+console.log('📋 URL Parameters:', { quizIdParam, assignmentIdParam, questionCount, difficulty });
+
+// Determine quiz type
+if (assignmentIdParam) {
+	// Teacher assignment - student is taking teacher-created quiz
+	isTeacherAssignment = true;
+	dbQuizId = parseInt(assignmentIdParam);
+	console.log('👨‍🏫 Loading teacher assignment:', dbQuizId);
+} else if (quizIdParam) {
+	// Regular quiz - auto-generated
+	quizId = quizIdParam;
+	console.log('🎯 Loading regular quiz:', quizId);
+} else {
+	console.error('❌ No quiz ID provided');
 	alert('Kein Quiz ausgewählt');
 	window.location.href = '/kurse.html';
 }
 
-// Auth
+// Auth check
 async function checkAuth() {
 	try {
 		const res = await fetch('/api/check-auth', { credentials: 'include' });
@@ -297,32 +296,64 @@ function showLoadingState() {
 	questionSection.innerHTML = `
 		<div class="question-card" style="text-align: center; padding: 3rem;">
 			<div style="display: inline-block; width: 80px; height: 80px; border: 8px solid #f3f4f6; border-top: 8px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 2rem;"></div>
-			<h2 style="color: var(--text); margin-bottom: 1rem;">🤖 KI generiert dein Quiz...</h2>
-			<p style="color: var(--muted); font-size: 1.1rem; margin-bottom: 0.5rem;">
+			<h2 style="color: var(--text); margin-bottom: 1rem;">${isTeacherAssignment ? '📄 Quiz wird geladen...' : '🤖 KI generiert dein Quiz...'}</h2>
+			<p style="color: var(--muted); font-size: 1.1rem;">
 				Bitte warte einen Moment
 			</p>
-			<p style="color: var(--muted); font-size: 0.95rem;">
-				Wir erstellen ${questionCount} individuelle Fragen für dich
-			</p>
-			<div style="margin-top: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #dbeafe, #e0e7ff); border-radius: 12px; max-width: 500px; margin-left: auto; margin-right: auto;">
-				<p style="margin: 0; color: #1e40af; font-weight: 600;">
-					💡 Tipp: Die Fragen werden jedes Mal neu generiert und sind einzigartig!
-				</p>
-			</div>
 		</div>
-		<style>
-			@keyframes spin {
-				0% { transform: rotate(0deg); }
-				100% { transform: rotate(360deg); }
-			}
-		</style>
 	`;
 }
 
-// Load quiz
-async function loadQuiz() {
+// Load teacher assignment
+async function loadTeacherAssignment() {
 	try {
-		// Show loading state immediately
+		showLoadingState();
+
+		console.log('📚 Loading teacher assignment:', dbQuizId);
+
+		const res = await fetch(`/api/student/assignment/${dbQuizId}`, {
+			credentials: 'include'
+		});
+
+		if (!res.ok) {
+			throw new Error('Failed to load assignment');
+		}
+
+		const data = await res.json();
+
+		if (!data.success) {
+			throw new Error(data.message || 'Assignment not found');
+		}
+
+		quizData = data.quiz;
+		courseId = quizData.course_id;
+
+		console.log('✅ Teacher assignment loaded:', quizData);
+
+		// Update UI
+		document.querySelector('#quizHeader h1').textContent = `📄 ${quizData.title}`;
+		document.querySelector('#quizHeader p').innerHTML = `
+			Von: ${quizData.teacher_name}
+			<br>
+			<span style="display: inline-block; margin-top: 0.5rem; padding: 0.5rem 1rem; background: rgba(255,255,255,0.2); border-radius: 20px; font-weight: 700;">
+				📚 ${quizData.course_title}
+			</span>
+		`;
+
+		document.getElementById('totalQ').textContent = quizData.questions.length;
+		document.getElementById('progressSection').style.display = 'block';
+
+		showQuestion();
+
+	} catch (err) {
+		console.error('❌ Error loading teacher assignment:', err);
+		showError(err.message);
+	}
+}
+
+// Load regular quiz (auto-generated)
+async function loadRegularQuiz() {
+	try {
 		showLoadingState();
 
 		console.log('📚 Loading quiz:', quizId, 'Questions:', questionCount, 'Difficulty:', difficulty);
@@ -330,22 +361,22 @@ async function loadQuiz() {
 		const res = await fetch(`/api/quizzes/${quizId}?count=${questionCount}&difficulty=${difficulty}`, {
 			credentials: 'include'
 		});
+
 		const data = await res.json();
 
 		if (!data.success) {
-			alert('Quiz nicht gefunden');
-			window.location.href = '/kurse.html';
-			return;
+			throw new Error('Quiz not found');
 		}
 
 		quizData = data.quiz;
-		dbQuizId = data.quiz.db_id; // Store the database ID
+		dbQuizId = data.quiz.db_id;
+		courseId = quizData.course_id || quizId.replace('quiz_', '').split('_')[0];
 
 		console.log('✅ Quiz loaded:', quizData);
 
+		// Update UI
 		document.querySelector('#quizHeader h1').textContent = `🎓 ${quizData.title}`;
 
-		// Show difficulty badge
 		const difficultyBadges = {
 			'easy': '😊 Einfach',
 			'medium': '😐 Mittel',
@@ -361,26 +392,32 @@ async function loadQuiz() {
 		`;
 
 		document.getElementById('totalQ').textContent = quizData.questions.length;
-
 		document.getElementById('progressSection').style.display = 'block';
+
 		showQuestion();
 
 	} catch (err) {
-		console.error('Error:', err);
-		const questionSection = document.getElementById('questionSection');
-		questionSection.innerHTML = `
-			<div class="question-card" style="text-align: center; padding: 3rem;">
-				<div style="font-size: 4rem; margin-bottom: 1rem;">⚠️</div>
-				<h2 style="color: var(--text); margin-bottom: 1rem;">Fehler beim Laden des Quiz</h2>
-				<p style="color: var(--muted); margin-bottom: 2rem;">
-					${err.message || 'Ein unbekannter Fehler ist aufgetreten'}
-				</p>
-				<button class="btn-nav btn-submit" onclick="window.location.href='/kurse.html'">
-					Zurück zu Kursen
-				</button>
-			</div>
-		`;
+		console.error('❌ Error loading quiz:', err);
+		showError(err.message);
 	}
+}
+
+// Show error
+function showError(message) {
+	const questionSection = document.getElementById('questionSection');
+	questionSection.style.display = 'block';
+	questionSection.innerHTML = `
+		<div class="question-card" style="text-align: center; padding: 3rem;">
+			<div style="font-size: 4rem; margin-bottom: 1rem;">⚠️</div>
+			<h2 style="color: var(--text); margin-bottom: 1rem;">Fehler beim Laden des Quiz</h2>
+			<p style="color: var(--muted); margin-bottom: 2rem;">
+				${message || 'Ein unbekannter Fehler ist aufgetreten'}
+			</p>
+			<button class="btn-nav btn-submit" onclick="goBack()">
+				Zurück
+			</button>
+		</div>
+	`;
 }
 
 // Show question
@@ -395,7 +432,6 @@ function showQuestion() {
 	const section = document.getElementById('questionSection');
 	section.style.display = 'block';
 
-	// Determine question type display
 	const isCodeQuestion = question.type === 'code';
 	const difficultyEmoji = {
 		'easy': '😊',
@@ -484,7 +520,6 @@ function nextQuestion() {
 
 // Submit quiz
 async function submitQuiz() {
-	// Check all answered
 	const unanswered = quizData.questions.filter(q => userAnswers[q.id] === undefined);
 	if (unanswered.length > 0) {
 		if (!confirm(`Du hast ${unanswered.length} Frage(n) noch nicht beantwortet. Trotzdem abschließen?`)) {
@@ -493,29 +528,37 @@ async function submitQuiz() {
 	}
 
 	try {
-		const res = await fetch(`/api/quizzes/${quizId}/submit`, {
+		const submitUrl = isTeacherAssignment
+			? `/api/quizzes/quiz_${dbQuizId}/submit`
+			: `/api/quizzes/${quizId}/submit`;
+
+		console.log('📤 Submitting to:', submitUrl);
+
+		const res = await fetch(submitUrl, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			credentials: 'include',
 			body: JSON.stringify({
 				answers: userAnswers,
-				db_id: dbQuizId // Include the database quiz ID
+				db_id: dbQuizId
 			})
 		});
 
 		const data = await res.json();
+
 		if (data.success) {
 			showResults(data);
+		} else {
+			throw new Error(data.message || 'Fehler beim Einreichen');
 		}
 	} catch (err) {
-		console.error('Error:', err);
-		alert('Fehler beim Einreichen');
+		console.error('❌ Submit error:', err);
+		alert('Fehler beim Einreichen: ' + err.message);
 	}
 }
 
 // Show results
 function showResults(data) {
-	showingResults = true;
 	document.getElementById('progressSection').style.display = 'none';
 	document.getElementById('questionSection').style.display = 'none';
 
@@ -545,9 +588,7 @@ function showResults(data) {
 
 			${data.ai_feedback ? `
 				<div style="background: linear-gradient(135deg, #dbeafe, #e0e7ff); padding: 2rem; border-radius: 12px; margin: 2rem 0; text-align: left;">
-					<h3 style="margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;">
-						🤖 KI-Feedback
-					</h3>
+					<h3 style="margin: 0 0 1rem 0;">🤖 KI-Feedback</h3>
 					<p style="font-size: 1.05rem; margin-bottom: 1rem; line-height: 1.6;">
 						${JSON.parse(data.ai_feedback).message}
 					</p>
@@ -560,19 +601,14 @@ function showResults(data) {
 					<div style="margin-top: 1.5rem; padding: 1rem; background: white; border-radius: 8px;">
 						<strong>📈 Nächster Schritt:</strong> ${JSON.parse(data.ai_feedback).next_steps}
 					</div>
-					<div style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.5); border-radius: 8px;">
-						<strong>🎯 Empfohlener Schwierigkeitsgrad:</strong>
-						${JSON.parse(data.ai_feedback).next_difficulty === 'easy' ? '😊 Einfach' :
-							JSON.parse(data.ai_feedback).next_difficulty === 'hard' ? '😅 Schwer' : '😐 Mittel'}
-					</div>
 				</div>
 			` : ''}
 
 			<div style="margin-top: 3rem; display: flex; gap: 1rem; justify-content: center;">
 				<button class="btn-nav" onclick="goBack()" style="background: #e5e7eb; color: var(--text);">
-					Zurück zum Kurs
+					${isTeacherAssignment ? 'Zurück zu Aufgaben' : 'Zurück zum Kurs'}
 				</button>
-				${!data.passed ? `
+				${!data.passed && !isTeacherAssignment ? `
 					<button class="btn-nav" onclick="retryQuiz()" style="background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: white;">
 						Nochmal versuchen
 					</button>
@@ -601,15 +637,24 @@ function retryQuiz() {
 
 // Go back
 function goBack() {
-	const courseId = quizId.replace('quiz_', '').split('_')[0];
-	window.location.href = `/kurs.html?id=${courseId}`;
+	if (isTeacherAssignment) {
+		window.location.href = '/bewertungen.html';
+	} else if (courseId) {
+		window.location.href = `/kurs.html?id=${courseId}`;
+	} else {
+		window.location.href = '/kurse.html';
+	}
 }
 
-// Init
+// Initialize
 checkAuth();
-loadQuiz();
 
+// Load appropriate quiz type
+if (isTeacherAssignment) {
+	loadTeacherAssignment();
+} else {
+	loadRegularQuiz();
+}
 	</script>
-	</body>
-
+</body>
 </html>

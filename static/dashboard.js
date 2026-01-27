@@ -21,7 +21,7 @@ function updateTodayDate() {
 // ===== BENUTZERDATEN LADEN =====
 async function loadUserData() {
 	try {
-		console.log('🔐 Check user data');
+		console.log('🔍 Check user data');
 		const res = await fetch('/api/check-auth', { credentials: 'include' });
 		const data = await res.json();
 
@@ -54,6 +54,9 @@ async function loadUserData() {
 
 			// Load friend requests
 			await loadFriendRequests();
+
+			// Load teacher assignments (NEW!)
+			await loadTeacherAssignments();
 
 		} else {
 			alert('Sie sind nicht angemeldet!');
@@ -125,6 +128,84 @@ async function loadMyCourses() {
 	}
 }
 
+// ===== LEHRER-AUFGABEN LADEN (NEU!) =====
+async function loadTeacherAssignments() {
+	try {
+		console.log('📝 Lade Aufgaben vom Lehrer...');
+		const res = await fetch('/api/student/teacher-assignments', { credentials: 'include' });
+
+		if (!res.ok) {
+			console.warn('⚠️ Keine Aufgaben oder Fehler:', res.status);
+			return;
+		}
+
+		const data = await res.json();
+		const assignments = data.assignments || [];
+
+		console.log('✅ Lehrer-Aufgaben geladen:', assignments.length);
+
+		// Update task stats
+		const totalAssignments = assignments.length;
+		const completedAssignments = assignments.filter(a => a.completed).length;
+		const pendingAssignments = totalAssignments - completedAssignments;
+
+		// Update "Aufgaben" stat in dashboard
+		const coursesEl = document.querySelector('.stat-value.courses');
+		if (coursesEl) {
+			coursesEl.textContent = pendingAssignments; // Show pending assignments
+		}
+
+		// Show notification if there are pending assignments
+		if (pendingAssignments > 0) {
+			showAssignmentsNotification(pendingAssignments, assignments.slice(0, 3));
+		}
+
+	} catch (err) {
+		console.error('❌ Fehler beim Laden der Aufgaben:', err);
+	}
+}
+
+// ===== AUFGABEN-BENACHRICHTIGUNG ANZEIGEN =====
+function showAssignmentsNotification(count, recentAssignments) {
+	const sidebar = document.querySelector('.sidebar-footer');
+	if (!sidebar) return;
+
+	// Check if notification already exists
+	if (document.getElementById('assignmentsNotif')) return;
+
+	const notif = document.createElement('div');
+	notif.id = 'assignmentsNotif';
+	notif.style.cssText = 'background: rgba(124,58,237,0.1); padding: 12px; border-radius: 10px; margin-bottom: 12px; border: 1px solid rgba(124,58,237,0.3); cursor: pointer; transition: all 0.2s;';
+
+	notif.innerHTML = `
+		<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+			<div>
+				<div style="font-weight: 700; font-size: 13px;">📝 Neue Aufgaben</div>
+				<div style="font-size: 12px; opacity: 0.9;">${count} ${count === 1 ? 'Aufgabe' : 'Aufgaben'} vom Lehrer</div>
+			</div>
+		</div>
+		<div style="font-size: 11px; opacity: 0.8; margin-top: 4px;">
+			${recentAssignments.map(a => `• ${a.title}`).join('<br>')}
+		</div>
+	`;
+
+	notif.addEventListener('click', () => {
+		window.location.href = '/bewertungen.html';
+	});
+
+	notif.addEventListener('mouseenter', () => {
+		notif.style.background = 'rgba(124,58,237,0.15)';
+		notif.style.transform = 'translateX(4px)';
+	});
+
+	notif.addEventListener('mouseleave', () => {
+		notif.style.background = 'rgba(124,58,237,0.1)';
+		notif.style.transform = 'translateX(0)';
+	});
+
+	sidebar.insertBefore(notif, sidebar.firstChild);
+}
+
 // ===== FREUNDE LADEN =====
 async function loadFriends() {
 	try {
@@ -188,7 +269,7 @@ function showFriendRequestsNotification(requests) {
 
 	const notif = document.createElement('div');
 	notif.id = 'friendRequestsNotif';
-	notif.style.cssText = 'background: rgba(37,99,235,0.1); padding: 10px; border-radius: 10px; margin-top: 10px; border: 1px solid rgba(37,99,235,0.3); cursor: pointer;';
+	notif.style.cssText = 'background: rgba(37,99,235,0.1); padding: 10px; border-radius: 10px; margin-bottom: 10px; border: 1px solid rgba(37,99,235,0.3); cursor: pointer;';
 	notif.innerHTML = `
 		<div style="display: flex; align-items: center; justify-content: space-between;">
 			<div>
@@ -229,12 +310,7 @@ async function loadUserStats() {
 		const totalTasks = tasks.length;
 		const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-		// Update stats display
-		const coursesEl = document.querySelector('.stat-value.courses');
-		if (coursesEl) {
-			coursesEl.textContent = totalTasks;
-		}
-
+		// Update completion stat
 		const completionEl = document.querySelector('.stat-value.completion');
 		if (completionEl) {
 			completionEl.innerHTML = `${completionRate}<span class="muted">%</span>`;
@@ -330,6 +406,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			const t = this.textContent.trim();
 			if(t==='Dashboard') window.location.href='dashboard.html';
 			else if(t==='Kurse') window.location.href='kurse.html';
+     		else if(t==='Lehrer-Aufgaben' || t==='Teacher Aufgaben' || t==='Bewertungen') window.location.href='bewertungen.html';
 			else if(t==='Einstellungen') window.location.href='einstellungen.html';
 			else if(t==='AI') window.location.href='ai.html';
 			else if(t==='Freunde') window.location.href='freunde.html';

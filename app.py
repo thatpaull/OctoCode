@@ -93,12 +93,10 @@ def extract_text_from_pdf(pdf_file):
 
 
 def init_db():
-    """Инициализация базы данных"""
-    print("📄 Инициализация базы данных...")
+    print("Initialising the database...")
     db = get_db()
     cursor = db.cursor()
 
-    # 1. Создаем users таблицу
     cursor.execute('''
                    CREATE TABLE IF NOT EXISTS users
                    (
@@ -648,11 +646,11 @@ def init_db():
                                                 status)
                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 						   ''', course)
-        print(f"✅ {len(test_courses)} Kurse erstellt")
+        print(f" {len(test_courses)} Kurse erstellt")
 
     db.commit()
     db.close()
-    print("✅ База данных инициализирована")
+    print("Database initialised")
 
 
 class TaskGenerator:

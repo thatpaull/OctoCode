@@ -182,6 +182,8 @@ document.querySelectorAll('.nav-item').forEach(item => {
 				window.location.href = 'kurse.html';
 			} else if(text === 'Einstellungen'){
 				window.location.href = 'einstellungen.html';
+				} else if(text === 'Lehrer-Aufgaben'){
+				window.location.href = 'bewertungen.html';
 			} else if(text === 'AI'){
 				window.location.href = 'ai.html';
 			} else if(text === 'Freunde')
