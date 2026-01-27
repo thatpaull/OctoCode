@@ -131,7 +131,7 @@ def init_db():
                        DEFAULT
                        CURRENT_TIMESTAMP
                    )
-				   ''')
+                   ''')
 
     # 2. Profiles
     cursor.execute('''
@@ -186,7 +186,7 @@ def init_db():
                        id
                    ) ON DELETE CASCADE
                        )
-				   ''')
+                   ''')
 
     # 3. Courses
     cursor.execute('''
@@ -222,7 +222,7 @@ def init_db():
                        DEFAULT
                        'active'
                    )
-				   ''')
+                   ''')
 
     # 4. Enrollments
     cursor.execute('''
@@ -266,7 +266,7 @@ def init_db():
                    )
                      ON DELETE CASCADE
                        )
-				   ''')
+                   ''')
 
     # 5. AI Tasks
     cursor.execute('''
@@ -331,7 +331,7 @@ def init_db():
                        id
                    ) ON DELETE CASCADE
                        )
-				   ''')
+                   ''')
 
     # 6. AI Submissions
     cursor.execute('''
@@ -379,7 +379,7 @@ def init_db():
                        id
                    ) ON DELETE CASCADE
                        )
-				   ''')
+                   ''')
 
     # 7. Friendships
     cursor.execute('''
@@ -427,7 +427,7 @@ def init_db():
                    )
                      ON DELETE CASCADE
                        )
-				   ''')
+                   ''')
 
     # 8. Points History
     cursor.execute('''
@@ -463,7 +463,7 @@ def init_db():
                        id
                    ) ON DELETE CASCADE
                        )
-				   ''')
+                   ''')
 
     # 9. Quizzes table
     cursor.execute('''
@@ -514,7 +514,7 @@ def init_db():
                        id
                    )
                        )
-				   ''')
+                   ''')
 
     # 10. Quiz answers table
     cursor.execute('''
@@ -567,7 +567,7 @@ def init_db():
                        id
                    )
                        )
-				   ''')
+                   ''')
 
     # 11. Quiz PDFs table (NEW)
     cursor.execute('''
@@ -613,7 +613,7 @@ def init_db():
                    )
                      ON DELETE CASCADE
                        )
-				   ''')
+                   ''')
 
     cursor.execute('SELECT COUNT(*) as count FROM users WHERE role = "teacher"')
     teacher_count = cursor.fetchone()['count']
@@ -645,7 +645,7 @@ def init_db():
                            INSERT INTO courses (title, description, category, color, total_lessons, duration, rating,
                                                 status)
                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-						   ''', course)
+                           ''', course)
         print(f" {len(test_courses)} Kurse erstellt")
 
     db.commit()
@@ -1076,7 +1076,7 @@ def get_teacher_students():
                               WHERE u.role = 'student'
                               GROUP BY u.id
                               ORDER BY u.points DESC
-							  ''').fetchall()
+                              ''').fetchall()
 
         db.close()
 
@@ -1133,7 +1133,7 @@ def get_teacher_tasks():
                            ON at.task_id = ats.task_id
                            GROUP BY at.task_id
                            ORDER BY at.created_at DESC
-						   ''').fetchall()
+                           ''').fetchall()
 
         db.close()
 
@@ -1183,7 +1183,7 @@ def get_teacher_stats():
                                         ON u.id = at.user_id
                                         WHERE u.role = 'student'
                                         GROUP BY u.id)
-								  ''').fetchone()
+                                  ''').fetchone()
 
         db.close()
 
@@ -1235,7 +1235,7 @@ def ai_generate_task():
                    INSERT INTO ai_tasks (user_id, task_id, title, description, topic, difficulty, language,
                                          examples, hints, solution, test_cases, estimated_time, points_reward)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-				   ''', (
+                   ''', (
                        session['user_id'],
                        task_data['task_id'],
                        task_data['title'],
@@ -1280,7 +1280,7 @@ def ai_get_my_tasks():
                            FROM ai_tasks
                            WHERE user_id = ?
                            ORDER BY created_at DESC
-						   ''', (session['user_id'],)).fetchall()
+                           ''', (session['user_id'],)).fetchall()
         db.close()
 
         return jsonify([safe_dict(t) for t in tasks]), 200
@@ -1522,7 +1522,7 @@ def search_users():
                              AND u.id != ?
 							 AND (u.name LIKE ? OR u.email LIKE ?)
 						   LIMIT 10
-						   ''', (session['user_id'], f'%{query}%', f'%{query}%')).fetchall()
+                           ''', (session['user_id'], f'%{query}%', f'%{query}%')).fetchall()
         db.close()
 
         return jsonify([safe_dict(u) for u in users]), 200
@@ -1549,7 +1549,7 @@ def send_friend_request():
                               FROM friendships
                               WHERE (user_id = ? AND friend_id = ?)
                                  OR (user_id = ? AND friend_id = ?)
-							  ''', (session['user_id'], friend_id, friend_id, session['user_id'])).fetchone()
+                              ''', (session['user_id'], friend_id, friend_id, session['user_id'])).fetchone()
 
         if existing:
             db.close()
@@ -1609,7 +1609,7 @@ def get_friends():
                                             WHERE friend_id = ?
                                               AND status = "accepted")
                              ORDER BY u.points DESC
-							 ''', (session['user_id'], session['user_id'])).fetchall()
+                             ''', (session['user_id'], session['user_id'])).fetchall()
         db.close()
 
         return jsonify([safe_dict(f) for f in friends]), 200
@@ -1634,7 +1634,7 @@ def get_friend_requests():
                               WHERE f.friend_id = ?
                                 AND f.status = "pending"
                               ORDER BY f.created_at DESC
-							  ''', (session['user_id'],)).fetchall()
+                              ''', (session['user_id'],)).fetchall()
         db.close()
 
         return jsonify([safe_dict(r) for r in requests]), 200
@@ -1651,7 +1651,30 @@ def get_courses():
         db = get_db()
         courses = db.execute('SELECT * FROM courses WHERE status = "active"').fetchall()
         db.close()
-        return jsonify([safe_dict(c) for c in courses]), 200
+
+        # Add image_url to each course
+        courses_list = []
+        for c in courses:
+            course_dict = safe_dict(c)
+            # Добавляем изображения в зависимости от названия курса
+            if 'Python' in course_dict.get('title', ''):
+                course_dict[
+                    'image_url'] = 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=800&h=400&fit=crop'
+            elif 'HTML' in course_dict.get('title', '') or 'CSS' in course_dict.get('title',
+                                                                                    '') or 'Web' in course_dict.get(
+                    'title', ''):
+                course_dict[
+                    'image_url'] = 'https://images.unsplash.com/photo-1523437113738-bbd3cc89fb19?w=800&h=400&fit=crop'
+            elif 'JavaScript' in course_dict.get('title', ''):
+                course_dict[
+                    'image_url'] = 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=400&fit=crop'
+            else:
+                course_dict[
+                    'image_url'] = 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=400&fit=crop'
+
+            courses_list.append(course_dict)
+
+        return jsonify(courses_list), 200
     except Exception as e:
         print(f"❌ Get courses error: {e}")
         return jsonify([]), 500
@@ -1676,6 +1699,22 @@ def get_course_detail(course_id):
 
         course_dict = safe_dict(course)
 
+        # Add image_url based on course title
+        if 'Python' in course_dict.get('title', ''):
+            course_dict[
+                'image_url'] = 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=800&h=400&fit=crop'
+        elif 'HTML' in course_dict.get('title', '') or 'CSS' in course_dict.get('title',
+                                                                                '') or 'Web' in course_dict.get('title',
+                                                                                                                ''):
+            course_dict[
+                'image_url'] = 'https://images.unsplash.com/photo-1523437113738-bbd3cc89fb19?w=800&h=400&fit=crop'
+        elif 'JavaScript' in course_dict.get('title', ''):
+            course_dict[
+                'image_url'] = 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=400&fit=crop'
+        else:
+            course_dict[
+                'image_url'] = 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=400&fit=crop'
+
         # Create lessons based on course title
         if 'Python' in course_dict.get('title', ''):
             # Python für Anfänger: 12 Lektionen, 6h total (30min each)
@@ -1685,7 +1724,16 @@ def get_course_detail(course_id):
                     'title': 'Einführung in Python',
                     'duration': 30,
                     'completed': False,
-                    'content': 'Willkommen bei Python! In dieser Lektion lernst du was Python ist und wie du es installierst.',
+                    'content': '''<h3>Willkommen bei Python! 🐍</h3>
+<p>Python ist eine der beliebtesten Programmiersprachen der Welt. Sie ist einfach zu lernen und wird von großen Unternehmen wie Google, Instagram und Netflix verwendet.</p>
+<h4>Warum Python?</h4>
+<ul>
+<li>Einfache und lesbare Syntax</li>
+<li>Vielseitig einsetzbar (Web, Data Science, KI)</li>
+<li>Große Community und viele Bibliotheken</li>
+</ul>
+<h4>Installation</h4>
+<p>Lade Python von <a href="https://python.org" target="_blank">python.org</a> herunter und installiere es. Überprüfe die Installation mit dem Befehl <code>python --version</code> in der Kommandozeile.</p>''',
                     'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=0&end=1800'
                 },
                 {
@@ -1693,7 +1741,20 @@ def get_course_detail(course_id):
                     'title': 'Variablen und Datentypen',
                     'duration': 30,
                     'completed': False,
-                    'content': 'Lerne wie man Variablen erstellt und die verschiedenen Datentypen in Python kennt.',
+                    'content': '''<h3>Variablen in Python</h3>
+<p>Variablen sind wie Container für Daten. In Python musst du den Typ nicht angeben - Python erkennt ihn automatisch!</p>
+<h4>Grundlegende Datentypen:</h4>
+<ul>
+<li><strong>int</strong> - Ganze Zahlen (z.B. 42, -17)</li>
+<li><strong>float</strong> - Dezimalzahlen (z.B. 3.14, -0.5)</li>
+<li><strong>str</strong> - Text (z.B. "Hallo Welt")</li>
+<li><strong>bool</strong> - Wahr/Falsch (True/False)</li>
+</ul>
+<h4>Beispiel:</h4>
+<pre><code>alter = 15
+name = "Anna"
+groesse = 1.65
+ist_schueler = True</code></pre>''',
                     'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=1800&end=3600'
                 },
                 {
@@ -1701,7 +1762,19 @@ def get_course_detail(course_id):
                     'title': 'Strings und Textverarbeitung',
                     'duration': 30,
                     'completed': False,
-                    'content': 'Arbeite mit Text: String-Methoden, Formatting und mehr.',
+                    'content': '''<h3>Arbeiten mit Strings</h3>
+<p>Strings sind Texte in Python. Sie sind sehr mächtig und haben viele nützliche Methoden!</p>
+<h4>String-Operationen:</h4>
+<ul>
+<li><code>+</code> - Strings verbinden: <code>"Hallo" + " Welt"</code></li>
+<li><code>*</code> - Strings wiederholen: <code>"Ha" * 3</code> ergibt "HaHaHa"</li>
+<li><code>len()</code> - Länge ermitteln</li>
+</ul>
+<h4>String-Methoden:</h4>
+<pre><code>text = "Python Programmierung"
+print(text.upper())  # PYTHON PROGRAMMIERUNG
+print(text.lower())  # python programmierung
+print(text.split())  # ['Python', 'Programmierung']</code></pre>''',
                     'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=3600&end=5400'
                 },
                 {
@@ -1709,7 +1782,21 @@ def get_course_detail(course_id):
                     'title': 'Listen und Tuples',
                     'duration': 30,
                     'completed': False,
-                    'content': 'Entdecke Listen und Tuples - wichtige Datenstrukturen in Python.',
+                    'content': '''<h3>Listen in Python</h3>
+<p>Listen sind Sammlungen von Elementen. Sie sind veränderbar und können verschiedene Datentypen enthalten.</p>
+<h4>Listen erstellen:</h4>
+<pre><code>fruechte = ["Apfel", "Banane", "Orange"]
+zahlen = [1, 2, 3, 4, 5]
+gemischt = [1, "Text", 3.14, True]</code></pre>
+<h4>Listen-Operationen:</h4>
+<ul>
+<li><code>append()</code> - Element hinzufügen</li>
+<li><code>remove()</code> - Element entfernen</li>
+<li><code>sort()</code> - Liste sortieren</li>
+<li><code>len()</code> - Anzahl der Elemente</li>
+</ul>
+<h4>Tuples:</h4>
+<p>Tuples sind wie Listen, aber unveränderbar: <code>koordinaten = (10, 20)</code></p>''',
                     'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=5400&end=7200'
                 },
                 {
@@ -1717,7 +1804,19 @@ def get_course_detail(course_id):
                     'title': 'Dictionaries und Sets',
                     'duration': 30,
                     'completed': False,
-                    'content': 'Lerne Dictionaries für Key-Value Paare und Sets kennen.',
+                    'content': '''<h3>Dictionaries - Key-Value Paare</h3>
+<p>Dictionaries speichern Daten in Schlüssel-Wert-Paaren. Perfekt für strukturierte Daten!</p>
+<h4>Dictionary erstellen:</h4>
+<pre><code>schueler = {
+    "name": "Max",
+    "alter": 14,
+    "klasse": "8b"
+}</code></pre>
+<h4>Zugriff:</h4>
+<pre><code>print(schueler["name"])  # Max
+schueler["alter"] = 15   # Wert ändern</code></pre>
+<h4>Sets:</h4>
+<p>Sets sind ungeordnete Sammlungen ohne Duplikate: <code>hobbys = {"Lesen", "Sport"}</code></p>''',
                     'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=7200&end=9000'
                 },
                 {
@@ -1725,7 +1824,22 @@ def get_course_detail(course_id):
                     'title': 'If-Else Bedingungen',
                     'duration': 30,
                     'completed': False,
-                    'content': 'Treffe Entscheidungen in deinem Code mit if-else Statements.',
+                    'content': '''<h3>Entscheidungen mit if-else</h3>
+<p>Mit Bedingungen kann dein Programm unterschiedlich reagieren!</p>
+<h4>Grundstruktur:</h4>
+<pre><code>alter = 16
+if alter >= 18:
+    print("Volljährig")
+elif alter >= 16:
+    print("Roller fahren erlaubt")
+else:
+    print("Noch zu jung")</code></pre>
+<h4>Operatoren:</h4>
+<ul>
+<li><code>==</code> gleich, <code>!=</code> ungleich</li>
+<li><code>&gt;, &gt;=</code> größer (gleich)</li>
+<li><code>&lt;, &lt;=</code> kleiner (gleich)</li>
+</ul>''',
                     'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=9000&end=10800'
                 },
                 {
@@ -1733,7 +1847,18 @@ def get_course_detail(course_id):
                     'title': 'For Schleifen',
                     'duration': 30,
                     'completed': False,
-                    'content': 'Wiederhole Code effizient mit for-Loops.',
+                    'content': '''<h3>Wiederholungen mit for-Loops</h3>
+<p>For-Schleifen durchlaufen Sequenzen Element für Element.</p>
+<h4>Liste durchlaufen:</h4>
+<pre><code>fruechte = ["Apfel", "Banane"]
+for frucht in fruechte:
+    print(f"Ich mag {frucht}")</code></pre>
+<h4>Mit range():</h4>
+<pre><code>for i in range(5):  # 0 bis 4
+    print(i)
+
+for i in range(1, 11):  # 1 bis 10
+    print(f"{i} mal 2 = {i*2}")</code></pre>''',
                     'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=10800&end=12600'
                 },
                 {
@@ -1741,7 +1866,18 @@ def get_course_detail(course_id):
                     'title': 'While Schleifen',
                     'duration': 30,
                     'completed': False,
-                    'content': 'Lerne while-Loops für bedingte Wiederholungen.',
+                    'content': '''<h3>While-Loops</h3>
+<p>While-Schleifen laufen solange eine Bedingung True ist.</p>
+<h4>Beispiel:</h4>
+<pre><code>zaehler = 0
+while zaehler < 5:
+    print(f"Durchlauf {zaehler}")
+    zaehler += 1</code></pre>
+<h4>Mit break:</h4>
+<pre><code>while True:
+    antwort = input("Weiter? (j/n): ")
+    if antwort == "n":
+        break</code></pre>''',
                     'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=12600&end=14400'
                 },
                 {
@@ -1749,7 +1885,19 @@ def get_course_detail(course_id):
                     'title': 'Funktionen',
                     'duration': 30,
                     'completed': False,
-                    'content': 'Erstelle wiederverwendbare Funktionen.',
+                    'content': '''<h3>Funktionen erstellen</h3>
+<p>Funktionen sind wiederverwendbare Codeblöcke!</p>
+<h4>Funktion definieren:</h4>
+<pre><code>def begruessung(name):
+    print(f"Hallo, {name}!")
+
+begruessung("Anna")</code></pre>
+<h4>Mit Rückgabewert:</h4>
+<pre><code>def addiere(a, b):
+    return a + b
+
+ergebnis = addiere(5, 3)
+print(ergebnis)  # 8</code></pre>''',
                     'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=14400&end=16200'
                 },
                 {
@@ -1757,7 +1905,19 @@ def get_course_detail(course_id):
                     'title': 'Module und Imports',
                     'duration': 30,
                     'completed': False,
-                    'content': 'Arbeite mit Python-Modulen und externen Bibliotheken.',
+                    'content': '''<h3>Module verwenden</h3>
+<p>Python hat viele nützliche Module!</p>
+<h4>Standard-Module:</h4>
+<pre><code>import math
+print(math.pi)  # 3.14159...
+print(math.sqrt(16))  # 4.0
+
+import random
+zahl = random.randint(1, 10)</code></pre>
+<h4>Spezifische Imports:</h4>
+<pre><code>from datetime import datetime
+jetzt = datetime.now()
+print(jetzt)</code></pre>''',
                     'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=16200&end=18000'
                 },
                 {
@@ -1765,7 +1925,22 @@ def get_course_detail(course_id):
                     'title': 'Fehlerbehandlung',
                     'duration': 30,
                     'completed': False,
-                    'content': 'Behandle Fehler professionell mit try-except.',
+                    'content': '''<h3>Fehler behandeln</h3>
+<p>Mit try-except Fehler abfangen!</p>
+<h4>Beispiel:</h4>
+<pre><code>try:
+    zahl = int(input("Zahl: "))
+    ergebnis = 100 / zahl
+    print(ergebnis)
+except ValueError:
+    print("Keine Zahl!")
+except ZeroDivisionError:
+    print("Nicht durch 0!")</code></pre>
+<h4>Mit finally:</h4>
+<pre><code>try:
+    datei = open("data.txt")
+finally:
+    datei.close()</code></pre>''',
                     'video_url': 'https://www.youtube.com/embed/e6vPt_e9sRw?start=18000&end=19800'
                 },
                 {
@@ -1773,7 +1948,27 @@ def get_course_detail(course_id):
                     'title': 'Praxis-Projekt',
                     'duration': 30,
                     'completed': False,
-                    'content': 'Wende dein Wissen an: Erstelle dein erstes Python-Projekt!',
+                    'content': '''<h3>Dein erstes Projekt! 🎉</h3>
+<p>Wende alles Gelernte an!</p>
+<h4>Projekt: Zahlenraten</h4>
+<pre><code>import random
+
+zahl = random.randint(1, 100)
+versuche = 0
+
+print("Ich denke an eine Zahl von 1-100!")
+
+while True:
+    tipp = int(input("Dein Tipp: "))
+    versuche += 1
+
+    if tipp < zahl:
+        print("Zu niedrig!")
+    elif tipp > zahl:
+        print("Zu hoch!")
+    else:
+        print(f"Richtig in {versuche} Versuchen!")
+        break</code></pre>''',
                     'video_url': 'https://www.youtube.com/embed/kqtD5dpn9C8'
                 }
             ]
@@ -1787,7 +1982,18 @@ def get_course_detail(course_id):
                     'title': 'HTML Grundlagen - Einführung',
                     'duration': 20,
                     'completed': False,
-                    'content': 'Lerne HTML in 20 Minuten! Was ist HTML? Grundstruktur, Elemente und Tags.',
+                    'content': '''<h3>Willkommen zur Webentwicklung! 🌐</h3>
+<p>HTML ist die Grundlage jeder Website!</p>
+<h4>Grundstruktur:</h4>
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;Meine Seite&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;Hallo Welt!&lt;/h1&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>''',
                     'video_url': 'https://www.youtube.com/embed/Q3MIitoSQkE'
                 },
                 {
@@ -1795,7 +2001,16 @@ def get_course_detail(course_id):
                     'title': 'HTML Vertiefung',
                     'duration': 35,
                     'completed': False,
-                    'content': 'Vertiefe dein HTML-Wissen: Formulare, Tabellen und semantische Elemente.',
+                    'content': '''<h3>HTML Elemente</h3>
+<h4>Text-Elemente:</h4>
+<ul>
+<li><code>&lt;h1&gt;</code>-<code>&lt;h6&gt;</code> Überschriften</li>
+<li><code>&lt;p&gt;</code> Absätze</li>
+<li><code>&lt;strong&gt;</code> Fetter Text</li>
+</ul>
+<h4>Links und Bilder:</h4>
+<pre><code>&lt;a href="url"&gt;Link&lt;/a&gt;
+&lt;img src="bild.jpg" alt="Text"&gt;</code></pre>''',
                     'video_url': 'https://www.youtube.com/embed/Q3MIitoSQkE'
                 },
                 {
@@ -1803,7 +2018,18 @@ def get_course_detail(course_id):
                     'title': 'HTML Praxis',
                     'duration': 25,
                     'completed': False,
-                    'content': 'Praktische HTML-Übungen: Erstelle deine erste Webseite.',
+                    'content': '''<h3>Deine erste Webseite!</h3>
+<p>Erstelle eine persönliche Profilseite mit:</p>
+<ul>
+<li>Überschrift mit deinem Namen</li>
+<li>Ein Bild</li>
+<li>Absatz über dich</li>
+<li>Liste deiner Hobbys</li>
+</ul>
+<h4>Beispiel:</h4>
+<pre><code>&lt;h1&gt;Max Mustermann&lt;/h1&gt;
+&lt;img src="profil.jpg"&gt;
+&lt;p&gt;Ich lerne Programmieren!&lt;/p&gt;</code></pre>''',
                     'video_url': 'https://www.youtube.com/embed/Q3MIitoSQkE'
                 },
                 {
@@ -1811,7 +2037,21 @@ def get_course_detail(course_id):
                     'title': 'CSS Grundlagen - Teil 1',
                     'duration': 30,
                     'completed': False,
-                    'content': 'CSS Kurs in 40 Minuten! Einführung: Selektoren, Farben und Text.',
+                    'content': '''<h3>Einführung in CSS</h3>
+<p>CSS macht deine Webseite schön!</p>
+<h4>CSS einbinden:</h4>
+<pre><code>&lt;style&gt;
+h1 {
+    color: blue;
+    font-size: 32px;
+}
+&lt;/style&gt;</code></pre>
+<h4>Selektoren:</h4>
+<ul>
+<li>Element: <code>p { color: red; }</code></li>
+<li>Klasse: <code>.wichtig { }</code></li>
+<li>ID: <code>#header { }</code></li>
+</ul>''',
                     'video_url': 'https://www.youtube.com/embed/I84aQhbJl_Y?start=0&end=1200'
                 },
                 {
@@ -1819,7 +2059,21 @@ def get_course_detail(course_id):
                     'title': 'CSS Grundlagen - Teil 2',
                     'duration': 30,
                     'completed': False,
-                    'content': 'Box Model: margin, padding, border verstehen und anwenden.',
+                    'content': '''<h3>Das Box Model</h3>
+<p>Jedes Element ist eine Box!</p>
+<h4>Komponenten:</h4>
+<ul>
+<li><strong>Content:</strong> Der Inhalt</li>
+<li><strong>Padding:</strong> Innenabstand</li>
+<li><strong>Border:</strong> Rahmen</li>
+<li><strong>Margin:</strong> Außenabstand</li>
+</ul>
+<h4>Beispiel:</h4>
+<pre><code>.box {
+    padding: 20px;
+    border: 2px solid black;
+    margin: 10px;
+}</code></pre>''',
                     'video_url': 'https://www.youtube.com/embed/I84aQhbJl_Y?start=600&end=1800'
                 },
                 {
@@ -1827,7 +2081,19 @@ def get_course_detail(course_id):
                     'title': 'CSS Layout - Flexbox',
                     'duration': 30,
                     'completed': False,
-                    'content': 'Moderne Layouts mit Flexbox erstellen.',
+                    'content': '''<h3>Flexbox Layouts</h3>
+<p>Flexbox ist perfekt für moderne Layouts!</p>
+<h4>Container:</h4>
+<pre><code>.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}</code></pre>
+<h4>Navbar Beispiel:</h4>
+<pre><code>.navbar {
+    display: flex;
+    justify-content: space-between;
+}</code></pre>''',
                     'video_url': 'https://www.youtube.com/embed/I84aQhbJl_Y?start=1200&end=2400'
                 },
                 {
@@ -1835,7 +2101,20 @@ def get_course_detail(course_id):
                     'title': 'CSS Positionierung',
                     'duration': 30,
                     'completed': False,
-                    'content': 'Elemente positionieren: relative, absolute, fixed.',
+                    'content': '''<h3>Position Eigenschaften</h3>
+<h4>Arten:</h4>
+<ul>
+<li><strong>static:</strong> Normal (Standard)</li>
+<li><strong>relative:</strong> Relativ zur normalen Position</li>
+<li><strong>absolute:</strong> Absolut positioniert</li>
+<li><strong>fixed:</strong> Fest im Viewport</li>
+</ul>
+<h4>Fixed Header:</h4>
+<pre><code>.header {
+    position: fixed;
+    top: 0;
+    width: 100%;
+}</code></pre>''',
                     'video_url': 'https://www.youtube.com/embed/I84aQhbJl_Y?start=1800&end=3000'
                 },
                 {
@@ -1843,7 +2122,22 @@ def get_course_detail(course_id):
                     'title': 'CSS & HTML Projekt',
                     'duration': 40,
                     'completed': False,
-                    'content': 'Abschlussprojekt: Erstelle eine komplette responsive Webseite!',
+                    'content': '''<h3>Abschlussprojekt! 🎨</h3>
+<p>Erstelle eine komplette Website!</p>
+<h4>Anforderungen:</h4>
+<ul>
+<li>Header mit Navigation</li>
+<li>Hero-Section mit Bild</li>
+<li>3 Cards mit Inhalt</li>
+<li>Footer mit Links</li>
+</ul>
+<h4>Responsive Design:</h4>
+<pre><code>@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+    }
+}</code></pre>
+<p>Viel Erfolg! 🚀</p>''',
                     'video_url': 'https://www.youtube.com/embed/I84aQhbJl_Y'
                 }
             ]
@@ -1895,9 +2189,32 @@ def get_my_courses():
                           FROM courses c
                                    JOIN enrollments e ON c.id = e.course_id
                           WHERE e.user_id = ?
-						  ''', (session['user_id'],)).fetchall()
+                          ''', (session['user_id'],)).fetchall()
         db.close()
-        return jsonify([safe_dict(r) for r in rows]), 200
+
+        # Add image_url to each course
+        courses_list = []
+        for r in rows:
+            course_dict = safe_dict(r)
+            # Add image_url based on course title
+            if 'Python' in course_dict.get('title', ''):
+                course_dict[
+                    'image_url'] = 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=800&h=400&fit=crop'
+            elif 'HTML' in course_dict.get('title', '') or 'CSS' in course_dict.get('title',
+                                                                                    '') or 'Web' in course_dict.get(
+                    'title', ''):
+                course_dict[
+                    'image_url'] = 'https://images.unsplash.com/photo-1523437113738-bbd3cc89fb19?w=800&h=400&fit=crop'
+            elif 'JavaScript' in course_dict.get('title', ''):
+                course_dict[
+                    'image_url'] = 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=400&fit=crop'
+            else:
+                course_dict[
+                    'image_url'] = 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=400&fit=crop'
+
+            courses_list.append(course_dict)
+
+        return jsonify(courses_list), 200
     except Exception as e:
         print(f"❌ Get my courses error: {e}")
         return jsonify([]), 500
@@ -2296,7 +2613,7 @@ def get_quiz(quiz_id):
                                    WHERE q.course_id = ?
                                      AND q.user_id = ?
                                    ORDER BY qa.submitted_at DESC LIMIT 1
-								   ''', (course_id, session['user_id'])).fetchone()
+                                   ''', (course_id, session['user_id'])).fetchone()
 
             if last_quiz:
                 score = last_quiz['score']
@@ -2318,7 +2635,7 @@ def get_quiz(quiz_id):
                                    SELECT COUNT(*) as count
                                    FROM quizzes
                                    WHERE course_id = ? AND user_id = ?
-								   ''', (course_id, session['user_id'])).fetchone()['count']
+                                   ''', (course_id, session['user_id'])).fetchone()['count']
 
         new_attempt_number = attempt_count + 1
 
@@ -2339,7 +2656,7 @@ def get_quiz(quiz_id):
         cursor = db.execute('''
                             INSERT INTO quizzes (course_id, user_id, title, questions_json, attempt_number, created_at)
                             VALUES (?, ?, ?, ?, ?, datetime('now'))
-							''', (
+                            ''', (
                                 course_id,
                                 session['user_id'],
                                 f"Quiz: {course_dict['title']} - Versuch {new_attempt_number}",
@@ -2392,7 +2709,7 @@ def submit_quiz(quiz_id):
                                      WHERE course_id = ?
                                        AND user_id = ?
                                      ORDER BY created_at DESC LIMIT 1
-									 ''', (course_id, session['user_id'])).fetchone()
+                                     ''', (course_id, session['user_id'])).fetchone()
 
             if not latest_quiz:
                 db.close()
@@ -2454,7 +2771,7 @@ def submit_quiz(quiz_id):
         db.execute('''
                    INSERT INTO quiz_answers (quiz_id, user_id, answers_json, score, passed, feedback, submitted_at)
                    VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-				   ''', (
+                   ''', (
                        db_quiz_id,
                        session['user_id'],
                        json.dumps(user_answers),
@@ -2519,7 +2836,7 @@ def get_quiz_history(course_id):
                              WHERE q.course_id = ?
                                AND q.user_id = ?
                              ORDER BY q.created_at DESC
-							 ''', (course_id, session['user_id'])).fetchall()
+                             ''', (course_id, session['user_id'])).fetchall()
 
         db.close()
 
@@ -2580,7 +2897,7 @@ def get_student_teacher_assignments():
                                           LEFT JOIN quiz_answers qa ON q.id = qa.quiz_id AND qa.user_id = ?
                                  WHERE u.role = 'teacher'
                                  ORDER BY q.created_at DESC
-								 ''', (session['user_id'],)).fetchall()
+                                 ''', (session['user_id'],)).fetchall()
 
         db.close()
 
@@ -2637,7 +2954,7 @@ def get_student_assignment(assignment_id):
                                    INNER JOIN users u ON q.user_id = u.id
                           WHERE q.id = ?
                             AND u.role = 'teacher'
-						  ''', (assignment_id,)).fetchone()
+                          ''', (assignment_id,)).fetchone()
 
         if not quiz:
             db.close()
@@ -2700,7 +3017,7 @@ def profile():
                            email_notifications = ?,
                            updated_at          = CURRENT_TIMESTAMP
                        WHERE user_id = ?
-					   ''', (
+                       ''', (
                            data.get('avatar_url'),
                            data.get('birthdate'),
                            data.get('country'),
@@ -2757,7 +3074,7 @@ def get_teacher_quiz_results():
                                       JOIN courses c ON q.course_id = c.id
                              WHERE u.role = 'student'
                              ORDER BY qa.submitted_at DESC
-							 ''').fetchall()
+                             ''').fetchall()
         db.close()
 
         results_list = []
@@ -2817,7 +3134,7 @@ def get_student_quiz_results(student_id):
                                       JOIN courses c ON q.course_id = c.id
                              WHERE qa.user_id = ?
                              ORDER BY qa.submitted_at DESC
-							 ''', (student_id,)).fetchall()
+                             ''', (student_id,)).fetchall()
         db.close()
 
         student_dict = safe_dict(student)
@@ -2883,7 +3200,7 @@ def get_quiz_details(quiz_id):
                                    JOIN courses c ON q.course_id = c.id
                                    LEFT JOIN quiz_answers qa ON q.id = qa.quiz_id
                           WHERE q.id = ?
-						  ''', (quiz_id,)).fetchone()
+                          ''', (quiz_id,)).fetchone()
         db.close()
 
         if not quiz:
@@ -2939,7 +3256,7 @@ def delete_teacher_quiz(quiz_id):
                           FROM quizzes
                           WHERE id = ?
                             AND user_id = ?
-						  ''', (quiz_id, session['user_id'])).fetchone()
+                          ''', (quiz_id, session['user_id'])).fetchone()
 
         if not quiz:
             db.close()
@@ -2987,7 +3304,7 @@ def get_teacher_pdf_quizzes():
                              WHERE q.user_id = ?
                              GROUP BY q.id, q.title, q.created_at, q.course_id, c.title, qp.filename, qp.uploaded_at
                              ORDER BY q.created_at DESC
-							 ''', (session['user_id'],)).fetchall()
+                             ''', (session['user_id'],)).fetchall()
 
         db.close()
 
@@ -3104,7 +3421,7 @@ def upload_pdf_quiz():
         cursor = db.execute('''
                             INSERT INTO quizzes (course_id, user_id, title, questions_json, attempt_number, created_at)
                             VALUES (?, ?, ?, ?, ?, ?)
-							''', (course_id, session['user_id'], quiz_title, questions_json, 1, created_at))
+                            ''', (course_id, session['user_id'], quiz_title, questions_json, 1, created_at))
 
         quiz_id = cursor.lastrowid
 
@@ -3113,7 +3430,7 @@ def upload_pdf_quiz():
         db.execute('''
                    INSERT INTO quiz_pdfs (quiz_id, filename, pdf_text, uploaded_by, uploaded_at)
                    VALUES (?, ?, ?, ?, ?)
-				   ''', (quiz_id, filename, pdf_text[:10000], session['user_id'], created_at))
+                   ''', (quiz_id, filename, pdf_text[:10000], session['user_id'], created_at))
 
         db.commit()
         db.close()
@@ -3166,7 +3483,7 @@ def upload_pdf_quiz():
                        DEFAULT
                        CURRENT_TIMESTAMP
                    )
-				   ''')
+                   ''')
 
     # 2. Profiles
     cursor.execute('''
@@ -3221,7 +3538,7 @@ def upload_pdf_quiz():
                        id
                    ) ON DELETE CASCADE
                        )
-				   ''')
+                   ''')
 
     # 3. Courses
     cursor.execute('''
@@ -3257,7 +3574,7 @@ def upload_pdf_quiz():
                        DEFAULT
                        'active'
                    )
-				   ''')
+                   ''')
 
     # 4. Enrollments
     cursor.execute('''
@@ -3301,7 +3618,7 @@ def upload_pdf_quiz():
                    )
                      ON DELETE CASCADE
                        )
-				   ''')
+                   ''')
 
     # 5. AI Tasks
     cursor.execute('''
@@ -3366,7 +3683,7 @@ def upload_pdf_quiz():
                        id
                    ) ON DELETE CASCADE
                        )
-				   ''')
+                   ''')
 
     # 6. AI Submissions
     cursor.execute('''
@@ -3414,7 +3731,7 @@ def upload_pdf_quiz():
                        id
                    ) ON DELETE CASCADE
                        )
-				   ''')
+                   ''')
 
     # 7. Friendships
     cursor.execute('''
@@ -3462,7 +3779,7 @@ def upload_pdf_quiz():
                    )
                      ON DELETE CASCADE
                        )
-				   ''')
+                   ''')
 
     # 8. Points History
     cursor.execute('''
@@ -3498,7 +3815,7 @@ def upload_pdf_quiz():
                        id
                    ) ON DELETE CASCADE
                        )
-				   ''')
+                   ''')
 
     # 9. Quizzes
     cursor.execute('''
@@ -3549,7 +3866,7 @@ def upload_pdf_quiz():
                        id
                    )
                        )
-				   ''')
+                   ''')
 
     # 10. Quiz answers
     cursor.execute('''
@@ -3602,7 +3919,7 @@ def upload_pdf_quiz():
                        id
                    )
                        )
-				   ''')
+                   ''')
 
     # 11. Quiz PDFs (NEW TABLE)
     cursor.execute('''
@@ -3648,7 +3965,7 @@ def upload_pdf_quiz():
                    )
                      ON DELETE CASCADE
                        )
-				   ''')
+                   ''')
 
     # Create test teacher if doesn't exist
     cursor.execute('SELECT COUNT(*) as count FROM users WHERE role = "teacher"')
@@ -3682,7 +3999,7 @@ def upload_pdf_quiz():
                            INSERT INTO courses (title, description, category, color, total_lessons, duration, rating,
                                                 status)
                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-						   ''', course)
+                           ''', course)
         print(f"✅ {len(test_courses)} courses created")
 
     db.commit()
